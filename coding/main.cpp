@@ -6,10 +6,11 @@
 #include <thread>
 #include <vector>
 #include "TestClass.cpp"
-// #include "Platform.cpp"
-#include "Player.cpp"
-#include "Textures.cpp"
-#include "HealthBar.cpp"
+#include "Platform.h"
+#include "Player.h"
+#include "Textures.h"
+#include "HealthBar.h"
+#include "Acid.h"
 // makefile is just the name of the makefile file, which has been named makefile
 // mingw32-make -f makefile
 // main.exe
@@ -27,8 +28,7 @@ int main()
 
     // Textures textures;
     Player player;
-    std::vector<Platform> platforms;
-    sf::Sprite newSprite;
+    std::vector<std::unique_ptr<Platform>> platforms;
 
     sf::Texture BRICKTEXTURE;
     if(BRICKTEXTURE.loadFromFile("textures/testingSubRects.png")){
@@ -36,7 +36,6 @@ int main()
     }else{
         std::cout << "Loading failed!" << std::endl;
     }
-    newSprite.setTexture(BRICKTEXTURE);
     sf::Texture SINGLECOLOR;
     if(SINGLECOLOR.loadFromFile("textures/singleColor.png")){
         std::cout << "Loaded properly" << std::endl;
@@ -50,26 +49,38 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode(1200, 800), "SFML TUTORIAL");
     HealthBar healthBar = HealthBar();
+
+    std::cout << "A" << std::endl;
     // window.SetFramerateLimit(60):
 
+    // Platform platform2;
+    std::unique_ptr<Platform> platform2 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    std::cout << "A2" << std::endl;
+    platform2->setTexture("textures/brick.png");
+    std::cout << "A3" << std::endl;
+    platform2->setPos(sf::Vector2f(50, 600));
+    std::cout << "A4" << std::endl;
+    platform2->setSize(sf::Vector2f(64, 64));
+    std::cout << "A5" << std::endl;
 
-    // Platform platform1;
-    // platform1.setTexture("textures/testingSubRects.png");
-    // platform1.setPos(sf::Vector2f(400, 400));
-    // platforms.push_back(platform1);
+    platforms.push_back(std::move(platform2));
 
-    Platform platform2;
-    platform2.setTexture(BRICKTEXTURE);
-    platform2.setPos(sf::Vector2f(50, 600));
-    platform2.setSize(sf::Vector2f(64, 64));
-    platforms.push_back(platform2);
+    std::cout << "B" << std::endl;
 
-    Platform Ground;
-    Ground.setTexture(SINGLECOLOR);
-    Ground.setPos(sf::Vector2f(-100, 770));
-    Ground.setSize(sf::Vector2f(1400, 50));
+    std::unique_ptr<Platform> ground = std::make_unique<Platform>();
+    ground->setTexture(SINGLECOLOR);
+    ground->setPos(sf::Vector2f(-100, 770));
+    ground->setSize(sf::Vector2f(1400, 50));
 
-    platforms.push_back(Ground);
+    std::cout << "C" << std::endl;
+
+    platforms.push_back(std::move(ground));
+
+    std::unique_ptr<Acid> acid = std::make_unique<Acid>();;
+    acid->setPos(sf::Vector2f(20, 20));
+    platforms.push_back(std::move(acid));
+
+    std::cout << "D" << std::endl;
     // platform1.setTexture(newTexture);
 
 
@@ -131,40 +142,31 @@ int main()
         // std::cout << collides(platform1, player);
 
         window.clear();
+        // std::cout << "X" << std::endl;
         sf::Vector2f relativePlayerPosition = player.movementUpdate(platforms);
+        // std::cout << "Y" << std::endl;
         
         
-        player.damage();
-        healthBar.setHealth(player.getHealth());
-        healthBar.update();
-        // healthBar.move(sf::Vector2f(relativePlayerPosition.x, 0));
+        // player.damage();
+        healthBar.update(player);
 
 
         window.draw(player.getSprite());
         window.draw(text);
-
-        
-
-        
-
         
         sf::View view = window.getView();
         view.move(relativePlayerPosition.x, 0);
 
-
-        // view.rotate(1);
-
-
+        // view.rotate(1); --> Funny
 
         window.setView(view);
 
         healthBar.move(sf::Vector2f(relativePlayerPosition.x, 0));
         window.draw(healthBar.getSprite());
 
-        for(Platform platform : platforms){
-            window.draw(platform.getSprite());
+        for(std::unique_ptr<Platform> &platform : platforms){
+            window.draw(platform->getSprite());
         }
-        // window.draw(newSprite);
         window.display();
         std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000/FPS));
     }

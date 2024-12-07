@@ -1,18 +1,18 @@
-#include "Platform.cpp"
-#include <SFML/Graphics.hpp>
+#include "Acid.h"
 
-// class Acid : public Platform {
-//     private: 
-//         double damage = 1;
-//     public:
-//         int getDamage(){
-//             return damage;
-//         }
-//         Acid(){
-//             setTexture("textures/acid.png");
-//         }
-//         Acid(sf::Vector2f pos){
-//             setPos(pos);
-//             setTexture("textures/acid.png");
-//         }
-// };
+double damage = 1;
+
+int Acid::getDamage(){
+    return damage;
+}
+void Acid::onCollide(Player player){
+    player.damage();
+    std::cout << "Acid Damage!" << std::endl;
+}
+Acid::Acid(){
+    setTexture("textures/acid.png");
+}
+Acid::Acid(sf::Vector2f pos){
+    setPos(pos);
+    setTexture("textures/acid.png");
+}
