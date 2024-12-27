@@ -11,6 +11,7 @@
 #include "Textures.h"
 #include "HealthBar.h"
 #include "Acid.h"
+#include "Animation.h"
 // makefile is just the name of the makefile file, which has been named makefile
 // mingw32-make -f makefile
 // main.exe
@@ -26,7 +27,7 @@ bool collides(Platform platform, Player player){
 int main()
 {
 
-    // Textures textures;
+    Textures textures;
     Player player;
     std::vector<std::unique_ptr<Platform>> platforms;
 
@@ -43,6 +44,19 @@ int main()
         std::cout << "Loading failed!" << std::endl;
     }
 
+    sf::Texture ANIMATION_TEST;
+    if(ANIMATION_TEST.loadFromFile("textures/Animation_Test.png")){
+        std::cout << "Loaded properly" << std::endl;
+    }else{
+        std::cout << "Loading failed!" << std::endl;
+    }
+
+    Animation animation(&ANIMATION_TEST, sf::Vector2u(16, 16), 0, 500);
+    sf::Sprite animationTestSprite;
+    animationTestSprite.setPosition(400, 400);
+    animationTestSprite.setScale(4, 4);
+    animationTestSprite.setTexture(animation.getTexture()->getTexture());
+
     player.setTexture("textures/player.png");
     player.setPos(sf::Vector2f(600, 0));
     
@@ -50,29 +64,33 @@ int main()
     sf::RenderWindow window(sf::VideoMode(1200, 800), "SFML TUTORIAL");
     HealthBar healthBar = HealthBar();
 
+    sf::Sprite damageOutline;
+    sf::Texture damageOutlineTexture;
+    if(damageOutlineTexture.loadFromFile("textures/damage_overlay.png")){
+        std::cout << "Loaded properly" << std::endl;
+    }else{
+        std::cout << "Loading failed!" << std::endl;
+    }
+    damageOutline.setTexture(damageOutlineTexture);
+    damageOutline.setScale(1200 / damageOutline.getGlobalBounds().width, 800 / damageOutline.getGlobalBounds().height);
+
     std::cout << "A" << std::endl;
     // window.SetFramerateLimit(60):
 
     // Platform platform2;
     std::unique_ptr<Platform> platform2 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
-    std::cout << "A2" << std::endl;
     platform2->setTexture("textures/brick.png");
-    std::cout << "A3" << std::endl;
     platform2->setPos(sf::Vector2f(50, 600));
-    std::cout << "A4" << std::endl;
     platform2->setSize(sf::Vector2f(64, 64));
-    std::cout << "A5" << std::endl;
 
     platforms.push_back(std::move(platform2));
 
-    std::cout << "B" << std::endl;
 
     std::unique_ptr<Platform> ground = std::make_unique<Platform>();
     ground->setTexture(SINGLECOLOR);
     ground->setPos(sf::Vector2f(-100, 770));
     ground->setSize(sf::Vector2f(1400, 50));
 
-    std::cout << "C" << std::endl;
 
     platforms.push_back(std::move(ground));
 
@@ -80,7 +98,6 @@ int main()
     acid->setPos(sf::Vector2f(20, 20));
     platforms.push_back(std::move(acid));
 
-    std::cout << "D" << std::endl;
     // platform1.setTexture(newTexture);
 
 
@@ -153,6 +170,9 @@ int main()
 
         window.draw(player.getSprite());
         window.draw(text);
+
+        animation.updateTexture();
+        window.draw(animationTestSprite);
         
         sf::View view = window.getView();
         view.move(relativePlayerPosition.x, 0);
@@ -161,12 +181,28 @@ int main()
 
         window.setView(view);
 
-        healthBar.move(sf::Vector2f(relativePlayerPosition.x, 0));
-        window.draw(healthBar.getSprite());
+        // auto now = std::chrono::system_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+        // std::cout << "Time: " << " | " << duration.count() << std::endl;
+
+
+        
+        
 
         for(std::unique_ptr<Platform> &platform : platforms){
             window.draw(platform->getSprite());
         }
+
+        damageOutline.setPosition(damageOutline.getGlobalBounds().left + relativePlayerPosition.x, 0);
+        if(player.getDamageFrameCount() > 0){
+            window.draw(damageOutline);
+        }
+
+        healthBar.move(sf::Vector2f(relativePlayerPosition.x, 0));
+        window.draw(healthBar.getSprite());
+
+        
+
         window.display();
         std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000/FPS));
     }

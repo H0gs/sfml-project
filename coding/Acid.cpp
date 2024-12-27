@@ -5,9 +5,9 @@ double damage = 1;
 int Acid::getDamage(){
     return damage;
 }
-void Acid::onCollide(Player player){
-    player.damage();
-    std::cout << "Acid Damage!" << std::endl;
+void Acid::onCollide(Player* player){
+    player->damage();
+    // std::cout << "Acid Damage!" << std::endl;
 }
 Acid::Acid(){
     setTexture("textures/acid.png");

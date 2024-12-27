@@ -12,6 +12,7 @@ Textures::Textures(){
     // }
     
 }
-sf::Texture* getBrick(){
+sf::Texture *Textures::getBrick()
+{
     return &brick;
 }

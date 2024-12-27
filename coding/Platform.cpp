@@ -29,8 +29,8 @@ void Platform::setTexture(sf::Texture t){
 void Platform::setSize(sf::Vector2f size){
     sprite.setScale(size.x / sprite.getLocalBounds().width, size.y / sprite.getLocalBounds().height);
 }
-void Platform::onCollide(Player player){
-    std::cout << "Platform Collide!" << std::endl;
+void Platform::onCollide(Player* player){
+    // std::cout << "Platform Collide!" << std::endl;
 }
 sf::Sprite Platform::getSprite(){
     return sprite;

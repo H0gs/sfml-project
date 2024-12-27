@@ -10,6 +10,9 @@ Player::Player(){
     collisionElasticity = 0; //A double from 0-1 which is multiplied by the velocity determining how fast the player is moving after colliding into something, such as a platform. 
     gravity = 1; //Gravitational acceleration
     MAXHEALTH = 100;
+    MINHEALTH = 0;
+    DAMAGEFRAMES = 10;
+    damageFrameCount = 0;
 
     // Other stuff
     pos = sf::Vector2f(0, 0);
@@ -45,7 +48,6 @@ void Player::setTexture(std::string path){
     texture.loadFromFile(path);
     sprite.setTexture(texture);
     sprite.setScale(sf::Vector2f(4, 4));
-    // std::cout << sprite.getLocalBounds().height;
 }
 void Player::setUp(bool set){
     up = set;
@@ -63,10 +65,20 @@ void Player::setJumping(bool set){
     jumping = set;
 }
 void Player::damage(){
-    health -= 0.5;
+    damageFrameCount = 10;
+    if(health - 0.5 > MINHEALTH){
+        health -= 0.5;
+    }else{
+        health = 0;
+    }
 }
 void Player::damage(double damage){
-    health -= damage;
+    damageFrameCount = 10;
+    if(health - damage > MINHEALTH){
+        health -= damage;
+    }else{
+        health = 0;
+    }
 }
 
 /**
@@ -76,6 +88,7 @@ void Player::damage(double damage){
  */
 sf::Vector2f Player::movementUpdate(std::vector<std::unique_ptr<Platform>>& platforms){
     // Main movement section
+
 
     float oldX = pos.x;
     float oldY = pos.y;
@@ -123,7 +136,7 @@ sf::Vector2f Player::movementUpdate(std::vector<std::unique_ptr<Platform>>& plat
         if(collides(platform.get())){
             pos.x -= xVelocity;
             pos.y -= yVelocity;
-            platform.get()->onCollide(*this); //platform.get() returns a Platform*, aka a raw Platform pointer
+            platform.get()->onCollide(this); //platform.get() returns a Platform*, aka a raw Platform pointer
             collided = true;
             break;
         }
@@ -164,6 +177,11 @@ sf::Vector2f Player::movementUpdate(std::vector<std::unique_ptr<Platform>>& plat
             canJump = false;
         }else{
         }
+    }
+
+    //Damage frame updates
+    if(damageFrameCount > 0){
+        damageFrameCount--;
     }
     
     sprite.setPosition(pos);
@@ -231,4 +249,8 @@ bool Player::collides(std::vector<Platform> platforms){
 }
 double Player::getHealth(){
     return health;
+}
+
+int Player::getDamageFrameCount(){
+    return damageFrameCount;
 }

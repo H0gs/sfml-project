@@ -10,7 +10,7 @@ class Acid : public Platform{
         double damage;
     public:
         int getDamage();
-        void onCollide(Player player) override;
+        void onCollide(Player* player) override;
         Acid();
         Acid(sf::Vector2f pos);
 };

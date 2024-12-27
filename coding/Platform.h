@@ -20,7 +20,7 @@ class Platform{
         void setTexture(std::string path);
         void setTexture(sf::Texture t);
         void setSize(sf::Vector2f size);
-        virtual void onCollide(Player player); // Overriden by subclasses, such as Acid
+        virtual void onCollide(Player* player); // Overriden by subclasses, such as Acid
         sf::Sprite getSprite();
         sf::Vector2f getPos();
         sf::Vector2f getSize();
