@@ -4,6 +4,8 @@
 #include "Platform.h"
 
 #include <iostream>
+#include <cmath>
+#include <vector>
 
 
 class Entity{ //Non-player character, may eventually be implemented into the player
@@ -16,6 +18,13 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         sf::Vector2f pos;
         sf::Sprite sprite;
         sf::Texture texture;
+        sf::Texture* spriteSheet;
+
+        double jumpVelocity;
+        double speed;
+        double gravity = 1; //Gravitational acceleration
+        double maxXVelocity = 10;
+        double maxYVelocity = 20;
 
         double MAXHEALTH;
         double MINHEALTH;
@@ -24,14 +33,22 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         int damageFrameCount;
 
         enum State {
-            Left, Right, Jumping, LeftHostile, RightHostile, JumpingHostile, Attacking
+            Idle, Left, Right, Jumping, LeftHostile, RightHostile, JumpingHostile, LeftAttacking, RightAttacking
         };
 
-        double range; //Player detection range (square)
+        State state;
+
+        double detectionRange; //Player detection range (circular radius)
+        double attackRange; //Range of attack
+        bool attacking;
+
+        double attackCooldown; //How long in between attacks
+        double entityCooldown; //How long until the entity can attack again
+
 
         double getHealth();
 
-        sf::Sprite getSprite();
+        sf::Sprite& getSprite();
         sf::Vector2f getPos();
         sf::Vector2f getSize();
 
@@ -45,8 +62,11 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         virtual sf::Vector2f update();
         virtual bool attack();
         virtual void damage(double dmg);
+        bool withinDetectionRange();
+        bool withinAttackRange();
+        bool jumpable(Platform* p);
 
-        Entity();
+        Entity(Player* player);
 };
 
 #endif

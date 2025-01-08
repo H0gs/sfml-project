@@ -6,9 +6,9 @@
 
 class Goblin : public Entity{
     private:
-
+        
     public:
-        Goblin();
+        Goblin(Player* player);
         bool attack() override;
         void damage(double damage) override;
         sf::Vector2f update() override;

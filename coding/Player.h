@@ -23,6 +23,7 @@ class Player{
         double MINHEALTH;
         int DAMAGEFRAMES;
         int damageFrameCount;
+
     public:
         // Other stuff
         sf::Texture texture; //-Entity
@@ -49,6 +50,7 @@ class Player{
         void setLeft(bool set);
         void setJumping(bool set);
         void damage();
+        bool jumpable(Platform* Platform);
         void damage(double damage);
         sf::Vector2f movementUpdate(std::vector<std::unique_ptr<Platform>>& platforms);
         sf::Sprite getSprite(); //-Entity

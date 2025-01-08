@@ -31,8 +31,8 @@ void Animation::updateTexture(){
     timeCounter += timeSinceLastCall;
     // std::cout << "test2" << std::endl;
     if(timeCounter >= frameTime){
-        timeCounter = 0;
-        // timeCounter -= frameTime; //Exactly the time per frame might not have passed, it may have been longer, so we should account for that time and do this rather than resetting to 0. 
+        // timeCounter = 0;
+        timeCounter -= frameTime; //Exactly the time per frame might not have passed, it may have been longer, so we should account for that time and do this rather than resetting to 0. 
         currentFrame++;
         if(currentFrame >= frameCount){
             currentFrame = 0;
@@ -46,11 +46,9 @@ void Animation::updateTexture(){
         texture->draw(temp);
     }
     lastTime = duration.count();
-    std::cout << "Frame: " << currentFrame << std::endl;
 }
 
 Animation::Animation(sf::Texture *textureSheet, sf::Vector2u size, int textureNumber, long long frameTime){
-    std::cout << "Start!" << std::endl;
     this->textureSheet = textureSheet;
     this->size = size;
     this->frameTime = frameTime;
@@ -73,7 +71,4 @@ Animation::Animation(sf::Texture *textureSheet, sf::Vector2u size, int textureNu
     temp.setScale(1, -1); //SFML RenderTextures flip on the y-axis for some reason
     temp.setPosition(0, size.y); //Adjust because we have to flip
     texture->draw(temp);
-
-
-    auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());    
 }

@@ -2,7 +2,7 @@
 
 Player::Player(){
     acceleration = 2;
-    jumpVelocity = 15;
+    jumpVelocity = 20;
     maxXVelocity = 10;
     maxYVelocity = 20;
     decelerationMultiplier = 0.7;
@@ -108,18 +108,18 @@ sf::Vector2f Player::movementUpdate(std::vector<std::unique_ptr<Platform>>& plat
         }
     }
     if(right){
-        if(xVelocity < maxXVelocity){
-            xVelocity += acceleration;
-        }else{
+        // if(xVelocity < maxXVelocity){
+        //     xVelocity += acceleration;
+        // }else{
             xVelocity = maxXVelocity;
-        }
+        // }
     }
     if (left){
-        if(xVelocity > -maxXVelocity){
-            xVelocity -= acceleration;
-        }else{
+        // if(xVelocity > -maxXVelocity){
+        //     xVelocity -= acceleration;
+        // }else{
             xVelocity = -maxXVelocity;
-        }
+        // }
     }
     if(!right && !left){
         xVelocity *= decelerationMultiplier;
@@ -247,6 +247,39 @@ bool Player::collides(std::vector<Platform> platforms){
     }
     return false;
 }
+
+
+
+bool Player::jumpable(Platform* platform){
+    double yPositiontracker = 0;
+    double xPositiontracker = 0;
+    double yVelocityTracker = jumpVelocity;
+
+    double yDistance = pos.y - platform->getPos().y + getSize().y;
+
+    while(yPositiontracker >= yDistance || yVelocityTracker > 0){
+        yVelocityTracker -= gravity;
+        yPositiontracker += yVelocityTracker;
+        xPositiontracker += maxXVelocity;
+    }
+
+    //Find the corner of the platfrom that is closest to the entity / player, this is the corner we should jump to
+    double xDistance;
+
+    double leftDist = abs(pos.x + getSize().x - platform->getPos().x);
+    double rightDist = abs(platform->getPos().x + platform->getSize().x - pos.x);
+
+    if(leftDist > rightDist){
+        //If the left corner is farther away than the right corner
+        xDistance = rightDist;
+    }else{
+        xDistance = leftDist;
+    }
+
+    // return abs(pos.x - platform->getPos().x) <= xPositiontracker && (yPositiontracker - jumpVelocity < platform->getPos().y);
+    return xDistance < xPositiontracker && (yPositiontracker - jumpVelocity < platform->getPos().y); //where is -40 coming from???
+}
+
 double Player::getHealth(){
     return health;
 }

@@ -12,6 +12,7 @@
 #include "HealthBar.h"
 #include "Acid.h"
 #include "Animation.h"
+#include "Goblin.h"
 // makefile is just the name of the makefile file, which has been named makefile
 // mingw32-make -f makefile
 // main.exe
@@ -30,6 +31,12 @@ int main()
     Textures textures;
     Player player;
     std::vector<std::unique_ptr<Platform>> platforms;
+
+    sf::VertexArray line0(sf::Lines, 2); // Define the two points of the line 
+    line0[0].position = sf::Vector2f(100, 100); // Starting point 
+    line0[0].color = sf::Color::Red; // Color of the starting point 
+    line0[1].position = sf::Vector2f(700, 500); // Ending point 
+    line0[1].color = sf::Color::Blue; //Ending point color
 
     sf::Texture BRICKTEXTURE;
     if(BRICKTEXTURE.loadFromFile("textures/testingSubRects.png")){
@@ -53,6 +60,8 @@ int main()
 
     Animation animation(&ANIMATION_TEST, sf::Vector2u(16, 16), 0, 500);
     sf::Sprite animationTestSprite;
+
+    Goblin goblin = Goblin(&player);
     animationTestSprite.setPosition(400, 400);
     animationTestSprite.setScale(4, 4);
     animationTestSprite.setTexture(animation.getTexture()->getTexture());
@@ -74,7 +83,6 @@ int main()
     damageOutline.setTexture(damageOutlineTexture);
     damageOutline.setScale(1200 / damageOutline.getGlobalBounds().width, 800 / damageOutline.getGlobalBounds().height);
 
-    std::cout << "A" << std::endl;
     // window.SetFramerateLimit(60):
 
     // Platform platform2;
@@ -85,11 +93,18 @@ int main()
 
     platforms.push_back(std::move(platform2));
 
+    std::unique_ptr<Platform> platform3 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform3->setTexture("textures/brick.png");
+    platform3->setPos(sf::Vector2f(1600, 600));
+    platform3->setSize(sf::Vector2f(128, 64));
+
+    platforms.push_back(std::move(platform3));
+
 
     std::unique_ptr<Platform> ground = std::make_unique<Platform>();
     ground->setTexture(SINGLECOLOR);
     ground->setPos(sf::Vector2f(-100, 770));
-    ground->setSize(sf::Vector2f(1400, 50));
+    ground->setSize(sf::Vector2f(2400, 50));
 
 
     platforms.push_back(std::move(ground));
@@ -156,12 +171,9 @@ int main()
         // 1B / 1487 = time in nanoseconds per frame
         // (1B / 60) - time per frame
 
-        // std::cout << collides(platform1, player);
 
         window.clear();
-        // std::cout << "X" << std::endl;
         sf::Vector2f relativePlayerPosition = player.movementUpdate(platforms);
-        // std::cout << "Y" << std::endl;
         
         
         // player.damage();
@@ -169,29 +181,38 @@ int main()
 
 
         window.draw(player.getSprite());
-        window.draw(text);
 
-        animation.updateTexture();
-        window.draw(animationTestSprite);
         
         sf::View view = window.getView();
         view.move(relativePlayerPosition.x, 0);
 
         // view.rotate(1); --> Funny
 
-        window.setView(view);
-
-        // auto now = std::chrono::system_clock::now();
-        // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
-        // std::cout << "Time: " << " | " << duration.count() << std::endl;
-
-
-        
+        window.setView(view);        
         
 
         for(std::unique_ptr<Platform> &platform : platforms){
             window.draw(platform->getSprite());
         }
+
+        for(std::unique_ptr<Platform> &platform : platforms){
+            sf::VertexArray line(sf::Lines, 2); // Define the two points of the line 
+            line[0].position = sf::Vector2f(platform.get()->getPos().x, platform.get()->getPos().y); // Starting point
+            line[1].position = sf::Vector2f(player.getPos().x, player.getPos().y); // Ending point
+            if(player.jumpable(platform.get())){
+                line[0].color = sf::Color::Green;
+                line[1].color = sf::Color::Green;
+            }else{
+                line[0].color = sf::Color::Red;
+                line[1].color = sf::Color::Red;
+            }
+            window.draw(line);
+        }
+
+        animation.updateTexture();
+        window.draw(animationTestSprite);
+        window.draw(line0);
+        window.draw(text);
 
         damageOutline.setPosition(damageOutline.getGlobalBounds().left + relativePlayerPosition.x, 0);
         if(player.getDamageFrameCount() > 0){
@@ -200,6 +221,8 @@ int main()
 
         healthBar.move(sf::Vector2f(relativePlayerPosition.x, 0));
         window.draw(healthBar.getSprite());
+
+        window.draw(goblin.getSprite());
 
         
 
