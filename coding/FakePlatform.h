@@ -22,6 +22,7 @@ class FakePlatform{
         double getHeight();
         int getID();
         bool operator==(const FakePlatform& other) const;
+        bool operator!=(const FakePlatform& other) const;
 };
 
 #endif

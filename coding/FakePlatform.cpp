@@ -42,3 +42,7 @@ int FakePlatform::getID(){
 bool FakePlatform::operator==(const FakePlatform& other) const {
     return pos == other.pos && size == other.size && ID == other.ID;
 }
+
+bool FakePlatform::operator!=(const FakePlatform& other) const {
+    return !(*this == other);
+}

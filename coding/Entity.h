@@ -11,7 +11,8 @@
 class Entity{ //Non-player character, may eventually be implemented into the player
 
     private:
-        
+        int PATH_REFRESH_FRAMES = 20;
+        int framesSincePathRefresh = 0;
     public:
         //Temporary
         bool jumpInput;
