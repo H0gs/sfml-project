@@ -19,7 +19,7 @@ Goblin::Goblin(Player* player) : Entity(player){ //Explicitly call entity constr
     }
 
     std::cout << "B" << std::endl;
-    setPos(sf::Vector2f(500, 500));
+    setPos(sf::Vector2f(600, 0));
 }
 
 void Goblin::damage(double damage){
@@ -32,32 +32,7 @@ bool Goblin::attack(){
     return false;
 }
 
-sf::Vector2f Goblin::update(){
-    if(withinDetectionRange()){
-        attacking = true;
-    }
-    if(target->getPos().x - pos.x >= 0){
-        //Player is on the left of the goblin
-        if(attacking){
-            if(withinAttackRange() && entityCooldown <= 0){
-                state = LeftAttacking;
-            }else{
-                state = LeftHostile;
-            }
-        }else{
-            state = Idle;
-        }
-    }else{
-        //Player is on the right of the goblin
-        if(attacking){
-            if(withinAttackRange() && entityCooldown <= 0){
-                state = RightAttacking;
-            }else{
-                state = RightHostile;
-            }
-        }else{
-            state = Idle;
-        }
-    }
+sf::Vector2f Goblin::update(std::vector<std::unique_ptr<Platform>>& platforms){
+    Entity::update(platforms); // All the standard superclass updates
     return sf::Vector2f();
 }

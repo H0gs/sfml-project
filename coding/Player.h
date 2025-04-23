@@ -4,9 +4,11 @@
 #include <iostream>
 #include <memory>
 #include "Platform.h"
+#include "FakePlatform.h"
 // #include "Entity.h"
 
 class Platform; //Forward declaration needed because of the circular import
+class FakePlatform; //Why tf do we need this???
 
 class Player{
     private:
@@ -50,7 +52,23 @@ class Player{
         void setLeft(bool set);
         void setJumping(bool set);
         void damage();
-        bool jumpable(Platform* Platform);
+        bool jumpable(Platform* start, Platform* end);
+        bool jumpableHelper(Platform* platform);
+        bool jumpableHelper(Platform* platform, sf::Vector2f p);
+        bool jumpable(FakePlatform start, FakePlatform end);
+        bool jumpableHelper(FakePlatform platform, sf::Vector2f p);
+        std::vector<FakePlatform> mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms); //To do
+        
+        // std::vector<std::vector<Platform>> scramble(std::vector<std::unique_ptr<Platform>> platforms);
+        // void scrambleHelper(std::vector<std::unique_ptr<Platform>>& platforms, std::vector<Platform> vec, std::vector<std::vector<Platform>>* storage);
+        std::vector<std::vector<FakePlatform>> scramble(std::vector<std::unique_ptr<Platform>> platforms);
+        void scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage);
+        bool contains(std::vector<FakePlatform> platforms,  FakePlatform platform);
+
+
+        // bool contains(std::vector<Platform> vec, std::unique_ptr<Platform>& platform);
+
+        Platform* currentPlatform(std::vector<std::unique_ptr<Platform>>& platforms);
         void damage(double damage);
         sf::Vector2f movementUpdate(std::vector<std::unique_ptr<Platform>>& platforms);
         sf::Sprite getSprite(); //-Entity

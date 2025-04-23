@@ -13,6 +13,8 @@
 #include "Acid.h"
 #include "Animation.h"
 #include "Goblin.h"
+#include "Entity.h"
+#include "FakePlatform.h"
 // makefile is just the name of the makefile file, which has been named makefile
 // mingw32-make -f makefile
 // main.exe
@@ -31,6 +33,7 @@ int main()
     Textures textures;
     Player player;
     std::vector<std::unique_ptr<Platform>> platforms;
+    std::vector<std::unique_ptr<Entity>> entities;
 
     sf::VertexArray line0(sf::Lines, 2); // Define the two points of the line 
     line0[0].position = sf::Vector2f(100, 100); // Starting point 
@@ -62,6 +65,9 @@ int main()
     sf::Sprite animationTestSprite;
 
     Goblin goblin = Goblin(&player);
+    std::unique_ptr<Entity> uniqueGoblin(&goblin);
+    entities.push_back(std::move(uniqueGoblin));
+
     animationTestSprite.setPosition(400, 400);
     animationTestSprite.setScale(4, 4);
     animationTestSprite.setTexture(animation.getTexture()->getTexture());
@@ -90,6 +96,7 @@ int main()
     platform2->setTexture("textures/brick.png");
     platform2->setPos(sf::Vector2f(50, 600));
     platform2->setSize(sf::Vector2f(64, 64));
+    platform2->setID(2);
 
     platforms.push_back(std::move(platform2));
 
@@ -97,8 +104,10 @@ int main()
     platform3->setTexture("textures/brick.png");
     platform3->setPos(sf::Vector2f(1600, 600));
     platform3->setSize(sf::Vector2f(128, 64));
+    platform3->setID(3);
 
     platforms.push_back(std::move(platform3));
+
 
 
     std::unique_ptr<Platform> ground = std::make_unique<Platform>();
@@ -112,6 +121,29 @@ int main()
     std::unique_ptr<Acid> acid = std::make_unique<Acid>();;
     acid->setPos(sf::Vector2f(20, 20));
     platforms.push_back(std::move(acid));
+
+    std::unique_ptr<Platform> platform4 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform4->setTexture("textures/brick.png");
+    platform4->setPos(sf::Vector2f(400, 100));
+    platform4->setSize(sf::Vector2f(64, 64));
+
+    platforms.push_back(std::move(platform4));
+
+    std::unique_ptr<Platform> platform5 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform5->setTexture("textures/brick.png");
+    platform5->setPos(sf::Vector2f(700, 400));
+    platform5->setSize(sf::Vector2f(64, 64));
+    platform5->setID(5);
+
+    platforms.push_back(std::move(platform5));
+
+    std::unique_ptr<Platform> platform6 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform6->setTexture("textures/brick.png");
+    platform6->setPos(sf::Vector2f(400, 450));
+    platform6->setSize(sf::Vector2f(64, 64));
+    platform6->setID(6);
+
+    platforms.push_back(std::move(platform6));
 
     // platform1.setTexture(newTexture);
 
@@ -157,7 +189,10 @@ int main()
         player.setUp(sf::Keyboard::isKeyPressed(sf::Keyboard::W));
         player.setDown(sf::Keyboard::isKeyPressed(sf::Keyboard::S));
         player.setJumping(sf::Keyboard::isKeyPressed(sf::Keyboard::Space));
-
+        for(std::unique_ptr<Entity>& e : entities){
+            e->setJumpInput(sf::Keyboard::isKeyPressed(sf::Keyboard::P));
+            
+        }
         
         if(time != std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())){
             frameCount++;
@@ -188,30 +223,34 @@ int main()
 
         // view.rotate(1); --> Funny
 
-        window.setView(view);        
+        window.setView(view);
         
 
         for(std::unique_ptr<Platform> &platform : platforms){
             window.draw(platform->getSprite());
         }
+        for(std::unique_ptr<Entity>& entity : entities){
+            window.draw(entity->getSprite());
+        }
 
+        //Player jump testing
         for(std::unique_ptr<Platform> &platform : platforms){
             sf::VertexArray line(sf::Lines, 2); // Define the two points of the line 
             line[0].position = sf::Vector2f(platform.get()->getPos().x, platform.get()->getPos().y); // Starting point
             line[1].position = sf::Vector2f(player.getPos().x, player.getPos().y); // Ending point
-            if(player.jumpable(platform.get())){
+            if(player.jumpableHelper(platform.get())){
                 line[0].color = sf::Color::Green;
                 line[1].color = sf::Color::Green;
             }else{
                 line[0].color = sf::Color::Red;
                 line[1].color = sf::Color::Red;
             }
-            window.draw(line);
+            // window.draw(line);
         }
 
         animation.updateTexture();
         window.draw(animationTestSprite);
-        window.draw(line0);
+        // window.draw(line0);
         window.draw(text);
 
         damageOutline.setPosition(damageOutline.getGlobalBounds().left + relativePlayerPosition.x, 0);
@@ -221,8 +260,47 @@ int main()
 
         healthBar.move(sf::Vector2f(relativePlayerPosition.x, 0));
         window.draw(healthBar.getSprite());
+        
 
-        window.draw(goblin.getSprite());
+        //Pathfinding line testing
+        for(std::unique_ptr<Entity>& entity : entities){
+            entity->update(platforms);
+            window.draw(entity.get()->getSprite());
+            if(entity->getPath().size() != 0){
+                // std::cout << "Path" << std::endl;
+                for(int i = 0; i < entity->getPath().size() - 1; i++){
+                    sf::VertexArray line(sf::Lines, 2); // Define the two points of the line 
+                    line[0].position = sf::Vector2f(entity->getPath().at(i).getPos().x, entity->getPath().at(i).getPos().y); // Starting point
+                    line[1].position = sf::Vector2f(entity->getPath().at(i + 1).getPos().x, entity->getPath().at(i + 1).getPos().y); // Ending point
+                    line[0].color = sf::Color::White;
+                    window.draw(line);
+                }
+            }else{
+                // std::cout << "Empty" << std::endl;
+            }
+        }
+        // std::cout << player.getPos().x << ", " << player.getPos().y << std::endl;
+        // std::cout << "Jumpable: " << entities.at(0).get()->jumpableHelper(platforms.at(1).get()->toFakePlatform(), sf::Vector2f(439, 385)) << std::endl;
+        // std::cout << "Jumpable: " << entities.at(0).get()->jumpable(platforms.at(1).get()->toFakePlatform(), platforms.at(0).get()->toFakePlatform()) << std::endl;
+        // std::cout << platforms.at(1).get()->getPos().x << ", " << platforms.at(0).get()->getPos().x << std::endl;
+        // std::cout << "Jumpable: " << entities.at(0).get()->jumpable(platforms.at(3).get()->toFakePlatform(), platforms.at(0).get()->toFakePlatform()) << std::endl;
+
+        //Goblin jump testing
+        for(std::unique_ptr<Platform> &platform : platforms){
+            sf::VertexArray line(sf::Lines, 2); // Define the two points of the line 
+            line[0].position = sf::Vector2f(platform.get()->getPos().x, platform.get()->getPos().y); // Starting point
+            line[1].position = sf::Vector2f(goblin.getPos().x, goblin.getPos().y); // Ending point
+            if(goblin.jumpableHelper(platform.get()->toFakePlatform(), goblin.getPos())){
+                line[0].color = sf::Color::Green;
+                line[1].color = sf::Color::Green;
+            }else{
+                line[0].color = sf::Color::Red;
+                line[1].color = sf::Color::Red;
+            }
+            // window.draw(line);
+        }
+
+        // window.draw(goblin.getSprite());
 
         
 

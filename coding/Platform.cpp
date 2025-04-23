@@ -55,4 +55,47 @@ Platform::Platform(){
 }
 Platform::Platform(sf::Vector2f startingPos){
     pos = startingPos;
+    ID = 0;
+}
+
+//For comparing platform objects, used in the scramble methods in player and entity
+bool Platform::equals(Platform platform){
+    return (sprite.getTexture() == platform.getSprite().getTexture()) &&  // Compare texture pointers
+           (sprite.getTextureRect() == platform.getSprite().getTextureRect()) &&  // Compare texture rect
+           (sprite.getPosition() == platform.getSprite().getPosition()) &&  // Compare position
+           (sprite.getScale() == platform.getSprite().getScale()) &&  // Compare scale
+           (sprite.getRotation() == platform.getSprite().getRotation());  // Compare rotation
+}
+
+std::unique_ptr<Platform> Platform::duplicate(){
+    // Platform platform;
+    auto platform = std::make_unique<Platform>();
+
+    sf::Image image;
+    image.create(100, 50, sf::Color::Red); // Fill with white
+
+    platform->texture.loadFromImage(image);
+
+
+    platform->setPos(pos);
+    platform->setSize(getSize());
+    
+    
+
+    return platform;
+}
+
+Platform Platform::duplicate2(){
+    Platform p;
+    return p;
+}
+
+FakePlatform Platform::toFakePlatform(){
+    return FakePlatform(pos, getSize(), ID);
+}
+void Platform::setID(int ID){
+    this->ID = ID;
+}
+int Platform::getID(){
+    return ID;
 }

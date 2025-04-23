@@ -11,7 +11,7 @@ class Goblin : public Entity{
         Goblin(Player* player);
         bool attack() override;
         void damage(double damage) override;
-        sf::Vector2f update() override;
+        sf::Vector2f update(std::vector<std::unique_ptr<Platform>>& platforms) override;
 };
 
 #endif

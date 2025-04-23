@@ -13,6 +13,14 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
     private:
         
     public:
+        //Temporary
+        bool jumpInput;
+        bool getJumpInput();
+        void setJumpInput(bool input);
+
+        bool canJump;
+
+
         Player* target;
         double health;
         sf::Vector2f pos;
@@ -20,11 +28,15 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         sf::Texture texture;
         sf::Texture* spriteSheet;
 
+        std::vector<FakePlatform> path;
+
         double jumpVelocity;
         double speed;
         double gravity = 1; //Gravitational acceleration
         double maxXVelocity = 10;
         double maxYVelocity = 20;
+        double xVelocity = 0;
+        double yVelocity = 0;
 
         double MAXHEALTH;
         double MINHEALTH;
@@ -59,12 +71,21 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         bool collides(Platform* platform);
         bool collidesBottom(Platform* platform); //This is pretty much only used for jumping
 
-        virtual sf::Vector2f update();
+        virtual sf::Vector2f update(std::vector<std::unique_ptr<Platform>>& platforms);
         virtual bool attack();
         virtual void damage(double dmg);
         bool withinDetectionRange();
         bool withinAttackRange();
-        bool jumpable(Platform* p);
+        bool jumpable(FakePlatform start, FakePlatform end);
+        bool jumpableHelper(FakePlatform platform, sf::Vector2f p);
+        // bool jumpableHelper(Platform* p);
+        Platform* currentPlatform(std::vector<std::unique_ptr<Platform>>& platforms);
+
+        void scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage);
+        std::vector<std::vector<FakePlatform>> scramble(std::vector<std::unique_ptr<Platform>>& platforms);
+        std::vector<FakePlatform> mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms);
+        bool contains(std::vector<FakePlatform> platforms, FakePlatform platform);
+        std::vector<FakePlatform> getPath();
 
         Entity(Player* player);
 };

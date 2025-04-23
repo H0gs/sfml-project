@@ -4,8 +4,10 @@
 #include <iostream>
 #include <memory>
 #include "Player.h"
+#include "FakePlatform.h"
 
 class Player; //Forward declaration needed because of the circular import
+class FakePlatform;
 
 class Platform{
     private:
@@ -14,6 +16,9 @@ class Platform{
         sf::Sprite sprite;
         double damage;
     public:
+        int ID;
+        void setID(int ID);
+        int getID();
         void setX(double xPos);
         void setY(double yPos);
         void setPos(sf::Vector2f newPos);
@@ -29,6 +34,10 @@ class Platform{
         double getDamage();
         Platform();
         Platform(sf::Vector2f startingPos);
+        bool equals(Platform platform);
+        std::unique_ptr<Platform> duplicate();
+        Platform duplicate2();
+        FakePlatform toFakePlatform();
 };
 
 #endif
