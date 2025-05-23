@@ -30,6 +30,7 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         sf::Texture* spriteSheet;
 
         std::vector<FakePlatform> path;
+        std::vector<sf::Vector2f> movementNodes;
 
         double jumpVelocity;
         double speed;
@@ -85,8 +86,11 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         void scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage);
         std::vector<std::vector<FakePlatform>> scramble(std::vector<std::unique_ptr<Platform>>& platforms);
         std::vector<FakePlatform> mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms);
+        std::vector<sf::Vector2f> calculateNodes();
+
         bool contains(std::vector<FakePlatform> platforms, FakePlatform platform);
         std::vector<FakePlatform> getPath();
+        std::vector<sf::Vector2f> getMovementNodes();
 
         Entity(Player* player);
 };

@@ -19,7 +19,7 @@ Goblin::Goblin(Player* player) : Entity(player){ //Explicitly call entity constr
     }
 
     std::cout << "B" << std::endl;
-    setPos(sf::Vector2f(600, 0));
+    setPos(sf::Vector2f(620, 0));
 }
 
 void Goblin::damage(double damage){

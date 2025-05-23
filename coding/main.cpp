@@ -94,7 +94,7 @@ int main()
     // Platform platform2;
     std::unique_ptr<Platform> platform2 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
     platform2->setTexture("textures/brick.png");
-    platform2->setPos(sf::Vector2f(50, 600));
+    platform2->setPos(sf::Vector2f(550, 600));
     platform2->setSize(sf::Vector2f(64, 64));
     platform2->setID(2);
 
@@ -144,6 +144,14 @@ int main()
     platform6->setID(6);
 
     platforms.push_back(std::move(platform6));
+
+    std::unique_ptr<Platform> platform7 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform7->setTexture("textures/brick.png");
+    platform7->setPos(sf::Vector2f(1180, 550));
+    platform7->setSize(sf::Vector2f(64, 64));
+    platform7->setID(7);
+
+    platforms.push_back(std::move(platform7));
 
     // platform1.setTexture(newTexture);
 
@@ -221,7 +229,7 @@ int main()
         sf::View view = window.getView();
         view.move(relativePlayerPosition.x, 0);
 
-        // view.rotate(1); --> Funny
+        // view.rotate(1); //--> Funny
 
         window.setView(view);
         
@@ -277,6 +285,15 @@ int main()
                 }
             }else{
                 // std::cout << "Empty" << std::endl;
+            }
+            if(entity->getMovementNodes().size() != 0){
+                for(int i = 0; i < entity->getMovementNodes().size() - 1; i++){
+                    sf::VertexArray line(sf::Lines, 2); // Define the two points of the line 
+                    line[0].position = entity->getMovementNodes().at(i); // Starting point
+                    line[1].position = entity->getMovementNodes().at(i + 1); // Ending point
+                    line[0].color = sf::Color::Magenta;
+                    window.draw(line);
+                }
             }
         }
         // std::cout << player.getPos().x << ", " << player.getPos().y << std::endl;

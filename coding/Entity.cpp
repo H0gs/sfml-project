@@ -11,6 +11,10 @@ std::vector<FakePlatform> Entity::getPath(){
     return path;
 }
 
+std::vector<sf::Vector2f> Entity::getMovementNodes(){
+    return movementNodes;
+}
+
 sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
 {
     framesSincePathRefresh++;
@@ -84,6 +88,7 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
             // std::cout << "Generating path" << std::endl;
             std::vector<std::vector<FakePlatform>> temp = scramble(platforms);
             path = mostEfficient(temp, platforms);
+            movementNodes = calculateNodes();
         }else{
             // std::cout << "Unable to generate path" << std::endl;
         }
@@ -178,19 +183,39 @@ bool Entity::jumpable(FakePlatform start, FakePlatform end){
     if(jumpableHelper(end, sf::Vector2f(xPos2, start.getPos().y - getSize().y))){
         return true;
     }
+
+    if(end.getPos().y < start.getPos().y){ //If the end is higher up than the start
+        double startX1 = start.getPos().x;
+        double startX2 = startX1 + start.getWidth();
+
+        double endX1 = end.getPos().x;
+        double endX2 = endX1 + end.getWidth();
+
+        if(endX1 > startX1 && endX1 < startX2){//If the first edge of end is over start
+            if(jumpableHelper(end, sf::Vector2f(endX1 - getSize().x, start.getPos().y - getSize().y))){
+                return true;
+            }
+        }
+
+        if(endX2 > startX1 && endX2 < startX2){//If the second edge of end is over start
+            if(jumpableHelper(end, sf::Vector2f(endX2, start.getPos().y - getSize().y))){
+                return true;
+            }
+        }
+    }
     
 
     return false;
 }
 
 bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p){
-    // if(
-    //     (p.x + getSize().x > platform.getPos().x && p.x < platform.getPos().x + platform.getWidth()) && //At least some part of the player/entity is between the ends of the platform
-    //     (p.y < platform.getPos().y)
-    // ){
-    //     std::cout << "Top check" << std::endl;
-    //     return true;
-    // }
+    if(
+        (p.x + getSize().x > platform.getPos().x && p.x < platform.getPos().x + platform.getWidth()) && //At least some part of the player/entity is between the ends of the platform
+        (p.y < platform.getPos().y)
+    ){
+        // std::cout << "Top check" << std::endl;
+        return true;
+    }
 
     double yPositiontracker = 0;
     double xPositiontracker = 0;
@@ -220,6 +245,7 @@ bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p){
     }else{
         xDistance = leftDist;
     }
+
 
     return xDistance < xPositiontracker && 
     apexDist > yDistance;
@@ -263,22 +289,82 @@ Platform* Entity::currentPlatform(std::vector<std::unique_ptr<Platform>>& platfo
     return false;
 }
 
+//Starts at entity, ends at player
+std::vector<sf::Vector2f> Entity::calculateNodes(){
+    std::vector<sf::Vector2f> nodes;
+    if(path.size() > 0){
+        for(int i = 0; i < path.size() - 1; i++){
+            FakePlatform a = path.at(i);
+            FakePlatform b = path.at(i + 1);
 
+            sf::Vector2f nodeA;
+            sf::Vector2f nodeB;
 
-void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage){
-    storage->push_back(vec);
-    if(vec.size() != origin.size()){
-        for(FakePlatform p : origin){
-            if(!contains(vec, p)){
-                std::vector<FakePlatform> temp = vec;
-                temp.push_back(p);
-                scrambleHelper(origin, temp, storage);
+            if(a.getPos().y > b.getPos().y){ //a is below b
+                if(b.getPos().x > a.getPos().x && b.getPos().x < a.getPos().x + a.getWidth()){
+                    //Left side of b is over a
+                    nodeA.x = b.getPos().x;
+                    nodeA.y = a.getPos().y;
+                    nodeB.x = b.getPos().x;
+                    nodeB.y = b.getPos().y;
+                }else if(b.getPos().x + b.getWidth() > a.getPos().x && b.getPos().x + b.getWidth() < a.getPos().x + a.getWidth()){
+                    //Right side of b is over a
+                    nodeA.x = b.getPos().x + b.getWidth();
+                    nodeA.y = a.getPos().y;
+                    nodeB.x = b.getPos().x + b.getWidth();
+                    nodeB.y = b.getPos().y;
+                }else{
+                    //B is off the side of a somewhere
+                    if(b.getPos().x + b.getWidth() < a.getPos().x){
+                        nodeA.x = a.getPos().x;
+                        nodeA.y = a.getPos().y;
+                        nodeB.x = b.getPos().x + b.getWidth();
+                        nodeB.y = b.getPos().y;
+                    }else{
+                        nodeA.x = a.getPos().x + a.getWidth();
+                        nodeA.y = a.getPos().y;
+                        nodeB.x = b.getPos().x;
+                        nodeB.y = b.getPos().y;
+                    }
+                }
+
+                
+
+            }else{ //a is above b
+                //Note that B cannot be directly under A and smaller than A because of how most efficient works
+                if(b.getPos().x < a.getPos().x){
+                    //B is to the left of A
+                    nodeA.x = a.getPos().x;
+                    nodeA.y = a.getPos().y;
+                    nodeB.x = b.getPos().x + b.getWidth();
+                    nodeB.y = b.getPos().y;
+                }else{
+                    //B is to the right of A
+                    nodeA.x = a.getPos().x + a.getWidth();
+                    nodeA.y = a.getPos().y;
+                    nodeB.x = b.getPos().x;
+                    nodeB.y = b.getPos().y;
+                }
             }
-        }
-    }
+            //Check before adding to prevent duplicates
+            nodes.push_back(nodeA);
+            nodes.push_back(nodeB);
+
+        }//End for loop
+    }//If statement
+
+    //Add code to clean up nodes here
+    return nodes;
 }
 
-//Assumes currentPlatform is not null
+//Assumes currentPlatform is not null \/
+
+/**
+ * @brief Finds a jumpable series of fakeplatforms to get to the player
+ * @param storage A vector containing vectors, each sub-vector representing a possible path in the form of fakeplatforms, this is created by scramble
+ * @param platforms A pointer to the unique pointer Platform array created in main
+ * @return A vector<FakePlatform> representing the most efficient path to get to the player. Start of the array is at the entity, ends at the player
+ */
 std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms){
     //Storage is the scrambled arrays, platforms is the original game array set
 
@@ -315,6 +401,19 @@ std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlat
     std::vector<FakePlatform> a;
     // std::cout << "Returning Empty" << std::endl;
     return a;
+}
+
+void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage){
+    storage->push_back(vec);
+    if(vec.size() != origin.size()){
+        for(FakePlatform p : origin){
+            if(!contains(vec, p)){
+                std::vector<FakePlatform> temp = vec;
+                temp.push_back(p);
+                scrambleHelper(origin, temp, storage);
+            }
+        }
+    }
 }
 
 /**
