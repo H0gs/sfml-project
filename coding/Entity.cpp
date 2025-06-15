@@ -151,7 +151,7 @@ bool Entity::collides(Platform platform){
         ((pos.y >= platform.getPos().y && pos.y <= platform.getPos().y + platform.getSize().y) || (pos.y + getSize().y >= platform.getPos().y && pos.y + getSize().y <= platform.getPos().y + platform.getSize().y));
 }
 
-bool Entity::jumpable(FakePlatform start, FakePlatform end){
+bool Entity::jumpable(FakePlatform start, FakePlatform end, std::vector<std::unique_ptr<Platform>>& platforms){
 
     //This section handles the case that end is directly above start, and end is wider than start (see below)
     /*
@@ -176,11 +176,11 @@ bool Entity::jumpable(FakePlatform start, FakePlatform end){
     double xPos2 = start.getPos().x + end.getWidth();
 
 
-    if(jumpableHelper(end, sf::Vector2f(xPos1, start.getPos().y - getSize().y))){ //This one (still)
+    if(jumpableHelper(end, sf::Vector2f(xPos1, start.getPos().y - getSize().y), platforms)){ //This one (still)
         return true;
     }
     
-    if(jumpableHelper(end, sf::Vector2f(xPos2, start.getPos().y - getSize().y))){
+    if(jumpableHelper(end, sf::Vector2f(xPos2, start.getPos().y - getSize().y), platforms)){
         return true;
     }
 
@@ -192,13 +192,13 @@ bool Entity::jumpable(FakePlatform start, FakePlatform end){
         double endX2 = endX1 + end.getWidth();
 
         if(endX1 > startX1 && endX1 < startX2){//If the first edge of end is over start
-            if(jumpableHelper(end, sf::Vector2f(endX1 - getSize().x, start.getPos().y - getSize().y))){
+            if(jumpableHelper(end, sf::Vector2f(endX1 - getSize().x, start.getPos().y - getSize().y), platforms)){
                 return true;
             }
         }
 
         if(endX2 > startX1 && endX2 < startX2){//If the second edge of end is over start
-            if(jumpableHelper(end, sf::Vector2f(endX2, start.getPos().y - getSize().y))){
+            if(jumpableHelper(end, sf::Vector2f(endX2, start.getPos().y - getSize().y), platforms)){
                 return true;
             }
         }
@@ -208,7 +208,7 @@ bool Entity::jumpable(FakePlatform start, FakePlatform end){
     return false;
 }
 
-bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p){
+bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p, std::vector<std::unique_ptr<Platform>>& platforms){
     if(
         (p.x + getSize().x > platform.getPos().x && p.x < platform.getPos().x + platform.getWidth()) && //At least some part of the player/entity is between the ends of the platform
         (p.y < platform.getPos().y)
@@ -217,6 +217,20 @@ bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p){
         return true;
     }
 
+    std::vector<FakePlatform> fakePlatforms; //Will represent the platforms in between the player and the entity
+    for(std::unique_ptr<Platform>& plat : platforms){ //This can be optimized later to only account for platforms in between the entity and the platform
+         fakePlatforms.push_back(plat->toFakePlatform());
+    }
+
+    int direction = 1;
+
+    //Starting position: p
+    if(p.x > platform.getPos().x){
+        //Starting pos is to the right of platform, moving left
+        direction = -1;
+    }
+
+
     double yPositiontracker = 0;
     double xPositiontracker = 0;
     double yVelocityTracker = jumpVelocity;
@@ -224,12 +238,24 @@ bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p){
     double yDistance = p.y - platform.getPos().y + getSize().y;
     double apexDist = yPositiontracker;
 
+    sf::Vector2f posActual;
+    posActual.x = p.x;
+    posActual.y = p.y;
+
     while(yPositiontracker >= yDistance || yVelocityTracker > 0){
         yVelocityTracker -= gravity;
         yPositiontracker += yVelocityTracker;
         xPositiontracker += maxXVelocity;
         if(yPositiontracker > apexDist){
             apexDist = yPositiontracker;
+        }
+        posActual.x += direction * maxXVelocity;
+        posActual.y -= yVelocityTracker; //Invert because top of the screen is 0 (?)
+        for(FakePlatform fp : fakePlatforms){
+            if(collides(fp, posActual) && fp != platform){
+                // std::cout << "Id: " << fp.getID() << std::endl;
+                return false;
+            }
         }
     }
 
@@ -257,6 +283,14 @@ bool Entity::collidesBottom(Platform* platform){ //This is pretty much only used
         ((pos.x > platform->getPos().x && pos.x < platform->getPos().x + platform->getSize().x) || (pos.x + getSize().x > platform->getPos().x && pos.x + getSize().x < platform->getPos().x + platform->getSize().x))
     &&
         (pos.y + getSize().y > platform->getPos().y && pos.y + getSize().y < platform->getPos().y + platform->getSize().y);
+}
+
+bool Entity::collides(FakePlatform platform, sf::Vector2f p){
+    
+    return         
+        ((p.x >= platform.getPos().x && p.x <= platform.getPos().x + platform.getSize().x) || (p.x + getSize().x >= platform.getPos().x && p.x + getSize().x <= platform.getPos().x + platform.getSize().x))
+            &&
+        ((p.y >= platform.getPos().y && p.y <= platform.getPos().y + platform.getSize().y) || (p.y + getSize().y >= platform.getPos().y && p.y + getSize().y <= platform.getPos().y + platform.getSize().y));
 }
 
 Platform* Entity::currentPlatform(std::vector<std::unique_ptr<Platform>>& platforms)
@@ -362,7 +396,7 @@ std::vector<sf::Vector2f> Entity::calculateNodes(){
 /**
  * @brief Finds a jumpable series of fakeplatforms to get to the player
  * @param storage A vector containing vectors, each sub-vector representing a possible path in the form of fakeplatforms, this is created by scramble
- * @param platforms A pointer to the unique pointer Platform array created in main
+ * @param platforms A reference to the unique pointer Platform array created in main
  * @return A vector<FakePlatform> representing the most efficient path to get to the player. Start of the array is at the entity, ends at the player
  */
 std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms){
@@ -387,7 +421,7 @@ std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlat
             //Note: the return of size() is an unsigned integer, meaning that 0 - 1 will loop around and be the max size (approx) 18446744073709551615, so running vec.size() - 1 without checking for 0 will massively increase run time
             if(vec.size() != 0){
                 for(int i = 0; i < vec.size() - 1; i++){
-                    if(!jumpable(vec.at(i), vec.at(i + 1))){ // Jumpable is the main logic for this function
+                    if(!jumpable(vec.at(i), vec.at(i + 1), platforms)){ // Jumpable is the main logic for this function
                         usable = false;
                     }
                 }

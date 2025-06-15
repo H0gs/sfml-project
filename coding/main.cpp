@@ -120,6 +120,7 @@ int main()
 
     std::unique_ptr<Acid> acid = std::make_unique<Acid>();;
     acid->setPos(sf::Vector2f(20, 20));
+    acid->setID(27);
     platforms.push_back(std::move(acid));
 
     std::unique_ptr<Platform> platform4 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
@@ -147,7 +148,7 @@ int main()
 
     std::unique_ptr<Platform> platform7 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
     platform7->setTexture("textures/brick.png");
-    platform7->setPos(sf::Vector2f(1180, 550));
+    platform7->setPos(sf::Vector2f(980, 550));
     platform7->setSize(sf::Vector2f(64, 64));
     platform7->setID(7);
 
@@ -307,7 +308,7 @@ int main()
             sf::VertexArray line(sf::Lines, 2); // Define the two points of the line 
             line[0].position = sf::Vector2f(platform.get()->getPos().x, platform.get()->getPos().y); // Starting point
             line[1].position = sf::Vector2f(goblin.getPos().x, goblin.getPos().y); // Ending point
-            if(goblin.jumpableHelper(platform.get()->toFakePlatform(), goblin.getPos())){
+            if(goblin.jumpableHelper(platform.get()->toFakePlatform(), goblin.getPos(), platforms)){
                 line[0].color = sf::Color::Green;
                 line[1].color = sf::Color::Green;
             }else{
