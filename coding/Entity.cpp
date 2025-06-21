@@ -86,14 +86,72 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
         if(currentPlatform(platforms) != nullptr && target->currentPlatform(platforms) != nullptr){
             framesSincePathRefresh = 0;
             // std::cout << "Generating path" << std::endl;
+
+            auto start = std::chrono::high_resolution_clock::now();
             std::vector<std::vector<FakePlatform>> temp = scramble(platforms);
+
+            auto end1 = std::chrono::high_resolution_clock::now();
+            auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start);
+            
+
             path = mostEfficient(temp, platforms);
+            auto end2 = std::chrono::high_resolution_clock::now();
+            auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - end1);
+
             movementNodes = calculateNodes();
+            auto end3 = std::chrono::high_resolution_clock::now();
+            auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end3 - end2);
+
+            std::cout << "A: " << duration1.count() << " ms, B: " << duration2.count() << " ms, C: " << duration3.count() << ".\n";
         }else{
             // std::cout << "Unable to generate path" << std::endl;
         }
     }
-    
+    // auto end = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    // std::cout << "Function took " << duration.count() << " ms.\n";
+
+
+    //Compare current position to the first node in the movmentNodes vector
+
+    //This makes sure that the first node is not the same as the current entity position, the first node in movementNodes should be the target node. 
+    if(movementNodes.size() > 0){
+        bool repeat = true;
+        while(repeat){
+            if(movementNodes.size() > 0){
+                if(std::abs(movementNodes.at(0).x - pos.x) <= maxXVelocity  && std::abs(movementNodes.at(0).y - (pos.y + getSize().y)) <= maxXVelocity){ //Use 0.01 to account for double truncation and weird number stuff
+                //if(std::abs(movementNodes.at(0).x - pos.x) < 0.01 && std::abs(movementNodes.at(0).y - (pos.y + getSize().y)) < 0.01){ //Use 0.01 to account for double truncation and weird number stuff
+                    movementNodes.erase(movementNodes.begin());
+                    // std::cout << "Removed!" << std::endl;
+                    xVelocity = 0;
+                }else{
+                    repeat = false;
+                    // std::cout << "(" << std::abs(movementNodes.at(0).x - pos.x) << ", " << std::abs(movementNodes.at(0).y - (pos.y + getSize().y)) << ")" << std::endl;
+                }
+            }else{
+                repeat = false;
+            }
+        }
+
+        
+
+    }
+    //Need to recheck to see if it has not completed
+    if(movementNodes.size() > 0){
+        FakePlatform current = currentPlatform(platforms)->toFakePlatform();
+        sf::Vector2f temp = pos;
+        pos = movementNodes.at(0);
+        FakePlatform endPlatform = currentPlatform(platforms)->toFakePlatform();
+        pos = temp;
+
+        if(endPlatform == current){ //If we are moving in a straight line horizontally
+            if(movementNodes.at(0).x > pos.x){
+                xVelocity = maxXVelocity;
+            }else{
+                xVelocity = -maxXVelocity;
+            }
+        }
+    }
 
     //States and behavior
     if(withinDetectionRange()){
@@ -326,6 +384,13 @@ Platform* Entity::currentPlatform(std::vector<std::unique_ptr<Platform>>& platfo
 //Starts at entity, ends at player
 std::vector<sf::Vector2f> Entity::calculateNodes(){
     std::vector<sf::Vector2f> nodes;
+    if(path.size() == 1){
+        sf::Vector2f node;
+        node.x = target->getPos().x;
+        node.y = path.at(0).getPos().y;
+        nodes.push_back(node);
+        return nodes;
+    }
     if(path.size() > 0){
         for(int i = 0; i < path.size() - 1; i++){
             FakePlatform a = path.at(i);
@@ -335,15 +400,15 @@ std::vector<sf::Vector2f> Entity::calculateNodes(){
             sf::Vector2f nodeB;
 
             if(a.getPos().y > b.getPos().y){ //a is below b
-                if(b.getPos().x > a.getPos().x && b.getPos().x < a.getPos().x + a.getWidth()){
+                if(b.getPos().x > a.getPos().x && b.getPos().x < a.getPos().x + a.getWidth()){ //This should be optimized to use the closer one (between the first and second block in this if statement)
                     //Left side of b is over a
-                    nodeA.x = b.getPos().x;
+                    nodeA.x = b.getPos().x - (getSize().x + 0.5); //The 0.5 is to account for any chance that it hits its head on a truncation-caused headhitter
                     nodeA.y = a.getPos().y;
                     nodeB.x = b.getPos().x;
                     nodeB.y = b.getPos().y;
                 }else if(b.getPos().x + b.getWidth() > a.getPos().x && b.getPos().x + b.getWidth() < a.getPos().x + a.getWidth()){
                     //Right side of b is over a
-                    nodeA.x = b.getPos().x + b.getWidth();
+                    nodeA.x = b.getPos().x + b.getWidth() + 0.5; //The 0.5 is to account for any chance that it hits its head on a truncation-caused headhitter
                     nodeA.y = a.getPos().y;
                     nodeB.x = b.getPos().x + b.getWidth();
                     nodeB.y = b.getPos().y;
@@ -413,8 +478,14 @@ std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlat
         Platform* current = currentPlatform(platforms);
         Platform* playerPlat = target->currentPlatform(platforms);
 
-        vec.insert(vec.begin(), current->toFakePlatform());
-        vec.push_back(playerPlat->toFakePlatform());
+        if(current->toFakePlatform() != playerPlat->toFakePlatform()){
+            vec.insert(vec.begin(), current->toFakePlatform());
+            vec.push_back(playerPlat->toFakePlatform());
+        }else{
+            vec.insert(vec.begin(), current->toFakePlatform());
+        }
+
+        
 
         if(vec.size() != 0){
             bool usable = true;
@@ -438,6 +509,8 @@ std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlat
 }
 
 void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage){
+    auto start = std::chrono::high_resolution_clock::now();
+
     storage->push_back(vec);
     if(vec.size() != origin.size()){
         for(FakePlatform p : origin){
@@ -448,6 +521,11 @@ void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePl
             }
         }
     }
+    auto end1 = std::chrono::high_resolution_clock::now();
+    auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start);
+    if(duration1.count() > 0){
+        std::cout << "Time: " << duration1.count() << " ms" << std::endl;
+    }
 }
 
 /**
@@ -456,12 +534,13 @@ void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePl
  * @return A vector of vectors for every order of the platforms. 
  */
 std::vector<std::vector<FakePlatform>> Entity::scramble(std::vector<std::unique_ptr<Platform>>& platforms){
+
     std::vector<FakePlatform> origin;
     FakePlatform targetCurent = target->currentPlatform(platforms)->toFakePlatform();
     FakePlatform entityCurrent = currentPlatform(platforms)->toFakePlatform();
 
     for(std::unique_ptr<Platform>& platform : platforms){
-        FakePlatform fp = FakePlatform(platform->getPos(), platform->getSize(), platform->getID());
+        FakePlatform fp = platform->toFakePlatform();
         //These will be force added in to the first and last position back in mostEfficient. 
         //We don't need combinations of the array with these platforms not in these positions because they must be the starting and ending positions
         if(fp != targetCurent && fp != entityCurrent){ 
@@ -470,6 +549,7 @@ std::vector<std::vector<FakePlatform>> Entity::scramble(std::vector<std::unique_
     }
     std::vector<FakePlatform> vec;
     std::vector<std::vector<FakePlatform>> storage;
+
 
     scrambleHelper(origin, vec, &storage);
 

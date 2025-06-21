@@ -54,6 +54,13 @@ int main()
         std::cout << "Loading failed!" << std::endl;
     }
 
+    sf::Texture SINGLECOLOR2;
+    if(SINGLECOLOR2.loadFromFile("textures/singleColor2.png")){
+        std::cout << "Loaded properly" << std::endl;
+    }else{
+        std::cout << "Loading failed!" << std::endl;
+    }
+
     sf::Texture ANIMATION_TEST;
     if(ANIMATION_TEST.loadFromFile("textures/Animation_Test.png")){
         std::cout << "Loaded properly" << std::endl;
@@ -102,8 +109,8 @@ int main()
 
     std::unique_ptr<Platform> platform3 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
     platform3->setTexture("textures/brick.png");
-    platform3->setPos(sf::Vector2f(1600, 600));
-    platform3->setSize(sf::Vector2f(128, 64));
+    platform3->setPos(sf::Vector2f(1600, 700));
+    platform3->setSize(sf::Vector2f(64, 64));
     platform3->setID(3);
 
     platforms.push_back(std::move(platform3));
@@ -113,10 +120,17 @@ int main()
     std::unique_ptr<Platform> ground = std::make_unique<Platform>();
     ground->setTexture(SINGLECOLOR);
     ground->setPos(sf::Vector2f(-100, 770));
-    ground->setSize(sf::Vector2f(2400, 50));
+    ground->setSize(sf::Vector2f(1700, 50));
+
+    std::unique_ptr<Platform> ground2 = std::make_unique<Platform>();
+    ground2->setTexture(SINGLECOLOR2);
+    ground2->setPos(sf::Vector2f(1650, 770));
+    ground2->setSize(sf::Vector2f(2400, 50));
+    ground2->setID(1);
 
 
     platforms.push_back(std::move(ground));
+    platforms.push_back(std::move(ground2));
 
     std::unique_ptr<Acid> acid = std::make_unique<Acid>();;
     acid->setPos(sf::Vector2f(20, 20));
@@ -127,6 +141,7 @@ int main()
     platform4->setTexture("textures/brick.png");
     platform4->setPos(sf::Vector2f(400, 100));
     platform4->setSize(sf::Vector2f(64, 64));
+    platform4->setID(4);
 
     platforms.push_back(std::move(platform4));
 
@@ -153,6 +168,12 @@ int main()
     platform7->setID(7);
 
     platforms.push_back(std::move(platform7));
+
+    std::cout << "IDs: [";
+    for(std::unique_ptr<Platform> &plat : platforms){
+        std::cout << plat.get()->getID() << ", ";
+    }
+    std::cout << "\n";
 
     // platform1.setTexture(newTexture);
 
@@ -294,7 +315,17 @@ int main()
                     line[1].position = entity->getMovementNodes().at(i + 1); // Ending point
                     line[0].color = sf::Color::Magenta;
                     window.draw(line);
+                    sf::CircleShape circle;
+                    circle.setFillColor(sf::Color::Blue);
+                    circle.setRadius(5);
+                    circle.setPosition(entity->getMovementNodes().at(i));
+                    window.draw(circle);
                 }
+                sf::CircleShape circle;
+                circle.setFillColor(sf::Color::Blue);
+                circle.setRadius(5);
+                circle.setPosition(entity->getMovementNodes().at(entity->getMovementNodes().size() - 1));
+                window.draw(circle);
             }
         }
         // std::cout << player.getPos().x << ", " << player.getPos().y << std::endl;

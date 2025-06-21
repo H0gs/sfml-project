@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <chrono>
 
 
 class Entity{ //Non-player character, may eventually be implemented into the player
