@@ -4,6 +4,12 @@
 #include "BaseClass.h"
 #include "DerivedClass.h"
 
+#include <unordered_map>
+#include <unordered_set>
+#include <array>
+#include <chrono>
+#include <algorithm>
+
 //g++ main.cpp BaseClass.cpp DerivedClass.cpp -o program
 class Superclass {
     public:
@@ -74,37 +80,150 @@ std::vector<std::vector<int>> scambler(std::vector<int> nums){
 
 //------------------- Final version end
 
+bool contains2(const std::vector<int>& vec, const int& value) {
+    for(int i : vec){
+        if(value == i){
+            return true;
+        }
+    }
+    return false;
+}
+
 int main(){
     std::cout << "Hello World!" << std::endl;
 
+    // std::unordered_set<std::array<int, 2>> blacklist;
+    // std::array<int, 2> myArray = {1, 2};
+    // std::unordered_set<std::array<int, 2>> set;
 
-    std:: vector<int> nums;
-    for(int i = 0; i < 3; i++){
-        nums.push_back(i);
+    int n = 4;
+    std::vector<std::vector<int>> nums;
+
+    for (int mask = 0; mask < (1 << n); ++mask) {
+        std::vector<int> vec;
+        for (int i = 0; i < n; ++i) {
+            if (mask & (1 << i)) {
+                vec.push_back(i);
+            }
+        }
+
+        //vec
+        do {
+            nums.push_back(vec);
+        } while (std::next_permutation(vec.begin(), vec.end()));
     }
+
+    for(std::vector<int> v : nums){
+        v.push_back(4);
+        v.insert(v.begin(), -1);
+
+        for(int n : v){
+            std::cout << n + 1 << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // int n = 4;
+    // std::vector<std::vector<int>> nums;
+    // // 1 << 4 = 0001 -> 1000 (in bits), so 1000 = 16 or 2^4
+    // for (int mask = 0; mask < (1 << n); ++mask) {
+    //     // std::cout << "Mask: " << mask << "\n";
+    //     std::cout << "Subset: ";
+    //     std::vector<int> vec;
+    //     for (int i = 0; i < n; ++i) {
+    //         if (mask & (1 << i)) {
+    //             std::cout << i << " ";
+    //             vec.push_back(i);
+    //         }
+    //     }
+    //     std::cout << "\n";
+    // }
+
+    // std::vector<int> v = {1, 2, 3};
+
+    // for (auto it = v.begin(); it != v.end(); ++it) {
+    //     std::cout << *it << " ";
+    // }
+    // std::cout << "\n-------------------\n";
+
+
+    // do {
+    //     for (int x : v) std::cout << x << " ";
+    //     std::cout << "\n";
+    // } while (std::next_permutation(v.begin(), v.end()));
+
+    // std::cout << "\n-------------------\n";
+
+    // int x = 1 << 4;
+    // std::cout << "X: " << x << std::endl;
+
+
+    // std:: vector<int> nums;
+    // std::unordered_map<int, int> map;
+
+    // for(int i = 0; i < 100000; i++){
+    //     nums.push_back(i);
+    //     map[i] = i * 2;
+    // }
+
+    // auto start = std::chrono::high_resolution_clock::now();
+
+    
+
+    // int count1 = 0;
+    // for(int i = 0; i < 100000; i++){
+    //     if(contains2(nums, i)){
+    //         count1++;
+    //     }
+    // }
+    // std::cout << count1 << std::endl;
+
+    // auto end = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    // std::cout << "Time: " << duration.count() << " ms" << std::endl;
+
+    // auto start2 = std::chrono::high_resolution_clock::now();
+
+    // //Hashing
+
+    // int count2 = 0;
+    // for(int i = 0; i < 100000; i++){
+    //     if(map.find(i) != map.end()){
+    //         count2++;
+    //     }
+    // }
+    // std::cout << count2 << std::endl;
+
+    // auto end2 = std::chrono::high_resolution_clock::now();
+    // auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2);
+    // std::cout << "Time: " << duration2.count() << " ms" << std::endl;
+
+    
+
+
     // // printFunction(nums);
 
     // std::vector<int> temp;
 
     // numFunction(temp, nums);
 
-    scambler(nums);
+    // scambler(nums);
 
-    for(int i = 0; i < 3; i++){
-        std::cout << std::endl;
-    }
+    // for(int i = 0; i < 3; i++){
+    //     std::cout << std::endl;
+    // }
 
-    std::vector<int> nums2;
-    for(int i = 0; i < 6; i++){
-        nums2.push_back(i);
-    }
+    // std::vector<int> nums2;
+    // for(int i = 0; i < 6; i++){
+    //     nums2.push_back(i);
+    // }
 
-    for(int i = 0; i < nums2.size(); i++){
-        std::cout << nums2.at(i);
-    }
+    // for(int i = 0; i < nums2.size(); i++){
+    //     std::cout << nums2.at(i);
+    // }
 
-    Subclass obj;
-    obj.showMessage();
+    // Subclass obj;
+    // obj.showMessage();
     // obj.testMethod();
 
 

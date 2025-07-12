@@ -1,5 +1,7 @@
 #include "Platform.h"
 
+int Platform::globalID = 0;
+
 void Platform::setX(double xPos){
     pos.x = xPos;
     sprite.setPosition(pos);
@@ -51,11 +53,13 @@ double Platform::getDamage(){
     return damage;
 }
 Platform::Platform(){
-
+    ID = Platform::globalID;
+    Platform::globalID++;
 }
 Platform::Platform(sf::Vector2f startingPos){
     pos = startingPos;
-    ID = 0;
+    ID = Platform::globalID;
+    Platform::globalID++;
 }
 
 //For comparing platform objects, used in the scramble methods in player and entity

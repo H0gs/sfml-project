@@ -34,6 +34,7 @@ int main()
     Player player;
     std::vector<std::unique_ptr<Platform>> platforms;
     std::vector<std::unique_ptr<Entity>> entities;
+    // Platform::globalID = 0; //Make sure this is before any platform declaration
 
     sf::VertexArray line0(sf::Lines, 2); // Define the two points of the line 
     line0[0].position = sf::Vector2f(100, 100); // Starting point 
@@ -103,7 +104,7 @@ int main()
     platform2->setTexture("textures/brick.png");
     platform2->setPos(sf::Vector2f(550, 600));
     platform2->setSize(sf::Vector2f(64, 64));
-    platform2->setID(2);
+    // platform2->setID(2);
 
     platforms.push_back(std::move(platform2));
 
@@ -111,7 +112,7 @@ int main()
     platform3->setTexture("textures/brick.png");
     platform3->setPos(sf::Vector2f(1600, 700));
     platform3->setSize(sf::Vector2f(64, 64));
-    platform3->setID(3);
+    // platform3->setID(3);
 
     platforms.push_back(std::move(platform3));
 
@@ -126,7 +127,7 @@ int main()
     ground2->setTexture(SINGLECOLOR2);
     ground2->setPos(sf::Vector2f(1650, 770));
     ground2->setSize(sf::Vector2f(2400, 50));
-    ground2->setID(1);
+    // ground2->setID(1);
 
 
     platforms.push_back(std::move(ground));
@@ -134,14 +135,14 @@ int main()
 
     std::unique_ptr<Acid> acid = std::make_unique<Acid>();;
     acid->setPos(sf::Vector2f(20, 20));
-    acid->setID(27);
+    // acid->setID(27);
     platforms.push_back(std::move(acid));
 
     std::unique_ptr<Platform> platform4 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
     platform4->setTexture("textures/brick.png");
     platform4->setPos(sf::Vector2f(400, 100));
     platform4->setSize(sf::Vector2f(64, 64));
-    platform4->setID(4);
+    // platform4->setID(4);
 
     platforms.push_back(std::move(platform4));
 
@@ -149,7 +150,7 @@ int main()
     platform5->setTexture("textures/brick.png");
     platform5->setPos(sf::Vector2f(700, 400));
     platform5->setSize(sf::Vector2f(64, 64));
-    platform5->setID(5);
+    // platform5->setID(5);
 
     platforms.push_back(std::move(platform5));
 
@@ -157,7 +158,7 @@ int main()
     platform6->setTexture("textures/brick.png");
     platform6->setPos(sf::Vector2f(400, 450));
     platform6->setSize(sf::Vector2f(64, 64));
-    platform6->setID(6);
+    // platform6->setID(6);
 
     platforms.push_back(std::move(platform6));
 
@@ -165,9 +166,27 @@ int main()
     platform7->setTexture("textures/brick.png");
     platform7->setPos(sf::Vector2f(980, 550));
     platform7->setSize(sf::Vector2f(64, 64));
-    platform7->setID(7);
+    // platform7->setID(7);
 
     platforms.push_back(std::move(platform7));
+
+    std::unique_ptr<Platform> platform8 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform8->setTexture("textures/brick.png");
+    platform8->setPos(sf::Vector2f(1100, 550));
+    platform8->setSize(sf::Vector2f(64, 64));
+    // platform8->setID(8);
+
+    platforms.push_back(std::move(platform8));
+
+    std::unique_ptr<Platform> platform9 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    platform9->setTexture("textures/brick.png");
+    platform9->setPos(sf::Vector2f(1300, 550));
+    platform9->setSize(sf::Vector2f(64, 64));
+    // platform9->setID(9);
+
+    platforms.push_back(std::move(platform9));
+
+    
 
     std::cout << "IDs: [";
     for(std::unique_ptr<Platform> &plat : platforms){

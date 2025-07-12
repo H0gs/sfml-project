@@ -16,6 +16,7 @@ class Platform{
         sf::Sprite sprite;
         double damage;
     public:
+        static int globalID;
         int ID;
         void setID(int ID);
         int getID();

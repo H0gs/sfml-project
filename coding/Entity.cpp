@@ -2,6 +2,9 @@
 
 //test
 
+std::unordered_map<FakePlatform, std::vector<FakePlatform>> Entity::jumpablePlatforms;
+bool Entity::updateJumpablePlatforms = true;
+
 Entity::Entity(Player* player)
 {
     target = player;
@@ -87,14 +90,13 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
             framesSincePathRefresh = 0;
             // std::cout << "Generating path" << std::endl;
 
-            auto start = std::chrono::high_resolution_clock::now();
-            std::vector<std::vector<FakePlatform>> temp = scramble(platforms);
+            // std::vector<std::vector<FakePlatform>> temp = scramble(platforms);
 
             auto end1 = std::chrono::high_resolution_clock::now();
-            auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start);
             
 
-            path = mostEfficient(temp, platforms);
+            // path = mostEfficient(temp, platforms);
+            path = mostEfficient3(platforms);
             auto end2 = std::chrono::high_resolution_clock::now();
             auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - end1);
 
@@ -102,14 +104,13 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
             auto end3 = std::chrono::high_resolution_clock::now();
             auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end3 - end2);
 
-            std::cout << "A: " << duration1.count() << " ms, B: " << duration2.count() << " ms, C: " << duration3.count() << ".\n";
+            if(duration2.count() > 0){
+                std::cout << duration2.count() << " ms" << std::endl;
+            }
         }else{
             // std::cout << "Unable to generate path" << std::endl;
         }
     }
-    // auto end = std::chrono::high_resolution_clock::now();
-    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    // std::cout << "Function took " << duration.count() << " ms.\n";
 
 
     //Compare current position to the first node in the movmentNodes vector
@@ -459,7 +460,7 @@ std::vector<sf::Vector2f> Entity::calculateNodes(){
 //Assumes currentPlatform is not null \/
 
 /**
- * @brief Finds a jumpable series of fakeplatforms to get to the player
+ * @brief [CURRENTLY UNUSED] Finds a jumpable series of fakeplatforms to get to the player
  * @param storage A vector containing vectors, each sub-vector representing a possible path in the form of fakeplatforms, this is created by scramble
  * @param platforms A reference to the unique pointer Platform array created in main
  * @return A vector<FakePlatform> representing the most efficient path to get to the player. Start of the array is at the entity, ends at the player
@@ -497,6 +498,10 @@ std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlat
                     }
                 }
                 if(usable){
+                    for(FakePlatform fp : vec){
+                        std::cout << fp.getID() << " ";
+                    }
+                    std::cout << "\n";
                     return vec;
                 }
 
@@ -506,6 +511,186 @@ std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlat
     std::vector<FakePlatform> a;
     // std::cout << "Returning Empty" << std::endl;
     return a;
+}
+
+//[CURRENTLY UNUSED] - mostEfficient3 is more efficient
+std::vector<FakePlatform> Entity::mostEfficient2(std::vector<std::unique_ptr<Platform>> &platforms)
+{
+    
+    FakePlatform playerPlat = target->currentPlatform(platforms)->toFakePlatform();
+    FakePlatform entityPlat = currentPlatform(platforms)->toFakePlatform();
+
+    std::vector<FakePlatform> fakePlatforms;
+
+    if(entityPlat == playerPlat){
+        fakePlatforms.push_back(entityPlat);
+        return fakePlatforms;
+    }
+
+    std::array<FakePlatform, 2> currentJump = {playerPlat, entityPlat};
+    if(jumpMap.find(currentJump) != jumpMap.end()){ //If this jump has already been calculated
+        // std::cout << "Contains" << std::endl;
+        return jumpMap[currentJump];
+    }else{
+        // std::cout << "Calculation required" << std::endl;
+    }
+
+    for(std::unique_ptr<Platform> &platform : platforms){
+        fakePlatforms.push_back(platform.get()->toFakePlatform());
+    }
+    
+    fakePlatforms.erase(std::remove(fakePlatforms.begin(), fakePlatforms.end(), playerPlat), fakePlatforms.end());
+    fakePlatforms.erase(std::remove(fakePlatforms.begin(), fakePlatforms.end(), entityPlat), fakePlatforms.end());
+
+    std::vector<std::vector<int>> nums;
+    int n = fakePlatforms.size();
+
+    for (int mask = 0; mask < (1 << n); ++mask) {
+        std::vector<int> vec;
+        for (int i = 0; i < n; ++i) {
+            if (mask & (1 << i)) {
+                vec.push_back(i);
+            }
+        }
+
+        //vec
+        do {
+            nums.push_back(vec);
+        } while (std::next_permutation(vec.begin(), vec.end()));
+    }
+    // std::cout << "Nums: " << nums.size() << std::endl;
+
+    fakePlatforms.insert(fakePlatforms.begin(), entityPlat);
+    fakePlatforms.push_back(playerPlat);
+
+
+    int numCount = 0;
+
+    std::unordered_set<std::array<int, 2>> blacklist; // checks IDs of FakePlatforms
+
+    for(std::vector<int>& vec : nums){
+        numCount++;
+        vec.insert(vec.begin(), -1); //Everything will be shifted up by one, so -1 will be 0 so that it points to the front of the vector
+        vec.push_back(fakePlatforms.size() - 2);
+
+        bool usable = true;
+        //Note: the return of size() is an unsigned integer, meaning that 0 - 1 will loop around and be the max size (approx) 18446744073709551615, so running vec.size() - 1 without checking for 0 will massively increase run time
+        if(vec.size() != 0){
+            for(int i = 0; i < vec.size() - 1; i++){
+                std::array<int, 2> arr = {vec.at(i), vec.at(i + 1)};
+                if(blacklist.find(arr) != blacklist.end()){ //If blacklist contains arr
+                    usable = false;
+                    break;
+                }else{
+                    if(!jumpable(fakePlatforms.at(vec.at(i) + 1), fakePlatforms.at(vec.at(i + 1) + 1), platforms)){ // Jumpable is the main logic for this function
+                        usable = false;
+                        blacklist.insert(arr);
+                        // for()
+                    }
+                }
+                
+            }
+            if(usable){
+                std::vector<FakePlatform> finalVec;
+                for(int n : vec){
+                    // std::cout << fakePlatforms.at(n + 1).getID() << " ";
+                    finalVec.push_back(fakePlatforms.at(n + 1));
+                }
+                // std::cout << std::endl;
+                // std::cout << "NumCount: " << numCount << std::endl;
+                jumpMap[currentJump] = finalVec;
+                // std::cout << "Calculation Added To jumpMap!" << std::endl;
+                return finalVec;
+            }
+
+        }
+
+    }
+
+    jumpMap[currentJump] = std::vector<FakePlatform>();
+    return std::vector<FakePlatform>();
+}
+
+std::vector<FakePlatform> Entity::mostEfficient3(std::vector<std::unique_ptr<Platform>>& platforms){
+    FakePlatform playerPlat = target->currentPlatform(platforms)->toFakePlatform();
+    FakePlatform entityPlat = currentPlatform(platforms)->toFakePlatform();
+
+    std::vector<FakePlatform> fakePlatforms;
+
+    if(entityPlat == playerPlat){
+        fakePlatforms.push_back(entityPlat);
+        return fakePlatforms;
+    }
+
+    std::array<FakePlatform, 2> currentJump = {playerPlat, entityPlat};
+    if(jumpMap.find(currentJump) != jumpMap.end()){ //If this jump has already been calculated
+        // std::cout << "Contains" << std::endl;
+        return jumpMap[currentJump];
+    }else{
+        // std::cout << "Calculation required" << std::endl;
+    }
+
+    for(std::unique_ptr<Platform> &platform : platforms){
+        fakePlatforms.push_back(platform->toFakePlatform());
+    }
+
+    if(updateJumpablePlatforms){
+        updateJumpablePlatforms = false;
+        for(FakePlatform p1 : fakePlatforms){
+            for(FakePlatform p2 : fakePlatforms){
+                if(p1 != p2){
+                    if(jumpable(p1, p2, platforms)){
+                        if(jumpablePlatforms.find(p1) == jumpablePlatforms.end()){ //If p1 isnt in the dictionary yet
+                            std::vector<FakePlatform> vec = {p2};
+                            jumpablePlatforms[p1] = vec;
+                        }else{
+                            jumpablePlatforms[p1].push_back(p2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<FakePlatform> finalPath;
+    std::unordered_set<FakePlatform> set;
+    set.insert(entityPlat);
+    std::vector<FakePlatform> vec;
+    vec.push_back(entityPlat);
+    int count = fakePlatforms.size() + 1;
+    mostEfficient3_Helper(entityPlat, playerPlat, set, vec, &finalPath, &count);
+
+
+    
+
+
+    jumpMap[currentJump] = finalPath;
+    return finalPath;
+}
+
+//Recursively check jumpablePlatforms until we find the end platform
+void Entity::mostEfficient3_Helper(FakePlatform start, FakePlatform end, std::unordered_set<FakePlatform> alreadyDone, std::vector<FakePlatform> currentPath, std::vector<FakePlatform> *storage, int *count)
+{
+    if(jumpablePlatforms.find(start) != jumpablePlatforms.end()){ //JumpablePlatforms contains start
+        for(FakePlatform platform : jumpablePlatforms[start]){
+            if(alreadyDone.find(platform) == alreadyDone.end()){ //We haven't done this patform yet
+                std::vector<FakePlatform> tempVec = currentPath;
+                std::unordered_set<FakePlatform> tempSet = alreadyDone;
+                tempVec.push_back(platform);
+                if(platform == end && tempVec.size() < *count){
+                    *storage = tempVec;
+                    *count = tempVec.size();
+                    for(FakePlatform fp : tempVec){
+                        std::cout << fp.getID() << " ";
+                    }
+                    std::cout << std::endl;
+                }else{
+                    tempSet.insert(platform);
+                    mostEfficient3_Helper(platform, end, tempSet, tempVec, storage, count);
+                }
+            }
+        }
+    }
 }
 
 void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage){
@@ -524,7 +709,22 @@ void Entity::scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePl
     auto end1 = std::chrono::high_resolution_clock::now();
     auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start);
     if(duration1.count() > 0){
-        std::cout << "Time: " << duration1.count() << " ms" << std::endl;
+        // std::cout << "Time: " << duration1.count() << " ms" << std::endl;
+    }
+}
+
+void Entity::scrambleHelper2(std::vector<FakePlatform> origin, std::unordered_map<FakePlatform, int> map, std::vector<std::unordered_map<FakePlatform, int>>* storage){
+    // auto start = std::chrono::high_resolution_clock::now();
+
+    storage->push_back(map);
+    if(map.size() != origin.size()){
+        for(FakePlatform p : origin){
+            if(map.find(p) == map.end()){ //Element not in map yet
+                std::unordered_map<FakePlatform, int> temp = map;
+                temp[p] = map.size();
+                scrambleHelper2(origin, temp, storage);
+            }
+        }
     }
 }
 
@@ -552,6 +752,7 @@ std::vector<std::vector<FakePlatform>> Entity::scramble(std::vector<std::unique_
 
 
     scrambleHelper(origin, vec, &storage);
+    // scrambleHelper2(origin, vec, set, &storage); --> 50% slower
 
     return storage;
 }

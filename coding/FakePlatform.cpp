@@ -19,11 +19,11 @@ void FakePlatform::setSize(sf::Vector2f s){
     size = s;
 }
 
-sf::Vector2f FakePlatform::getPos(){
+sf::Vector2f FakePlatform::getPos() const{
     return pos;
 }
 
-sf::Vector2f FakePlatform::getSize(){
+sf::Vector2f FakePlatform::getSize() const{
     return size;
 }
 
@@ -34,7 +34,7 @@ double FakePlatform::getWidth(){
 double FakePlatform::getHeight(){
     return size.y;
 }
-int FakePlatform::getID(){
+int FakePlatform::getID() const{
     return ID;
 }
 

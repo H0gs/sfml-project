@@ -2,11 +2,16 @@
 #define ENTITY_H
 #include "SFML/Graphics.hpp"
 #include "Platform.h"
+#include "array_hash.h"
 
 #include <iostream>
 #include <cmath>
 #include <vector>
 #include <chrono>
+#include <unordered_map>
+#include <unordered_set>
+#include <array>
+#include <functional>
 
 
 class Entity{ //Non-player character, may eventually be implemented into the player
@@ -14,11 +19,16 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
     private:
         int PATH_REFRESH_FRAMES = 20;
         int framesSincePathRefresh = 0;
+        std::unordered_map<std::array<FakePlatform, 2>,  std::vector<FakePlatform>> jumpMap; //Holds calculated jumps so recalculation is not necessary
+        // std::unordered_set<std::array<int, 2>> blacklist; // checks IDs of FakePlatforms
     public:
+        static std::unordered_map<FakePlatform, std::vector<FakePlatform>> jumpablePlatforms; //For each FakePlatform, stores a list of the other FakePlatforms that it is able to jump to
+        static bool updateJumpablePlatforms;
         //Temporary
         bool jumpInput;
         bool getJumpInput();
         void setJumpInput(bool input);
+
 
         bool canJump;
 
@@ -86,8 +96,12 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         Platform* currentPlatform(std::vector<std::unique_ptr<Platform>>& platforms);
 
         void scrambleHelper(std::vector<FakePlatform> origin, std::vector<FakePlatform> vec, std::vector<std::vector<FakePlatform>>* storage);
+        void scrambleHelper2(std::vector<FakePlatform> origin, std::unordered_map<FakePlatform, int> vec, std::vector<std::unordered_map<FakePlatform, int>>* storage);
         std::vector<std::vector<FakePlatform>> scramble(std::vector<std::unique_ptr<Platform>>& platforms);
         std::vector<FakePlatform> mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms);
+        std::vector<FakePlatform> mostEfficient2(std::vector<std::unique_ptr<Platform>>& platforms);
+        std::vector<FakePlatform> mostEfficient3(std::vector<std::unique_ptr<Platform>>& platforms);
+        void mostEfficient3_Helper(FakePlatform start, FakePlatform end, std::unordered_set<FakePlatform> alreadyDone, std::vector<FakePlatform> currentPath, std::vector<FakePlatform>* storage, int* count);
         std::vector<sf::Vector2f> calculateNodes();
 
         bool contains(std::vector<FakePlatform> platforms, FakePlatform platform);
