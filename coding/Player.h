@@ -5,6 +5,7 @@
 #include <memory>
 #include "Platform.h"
 #include "FakePlatform.h"
+#include "Item.h"
 // #include "Entity.h"
 
 class Platform; //Forward declaration needed because of the circular import

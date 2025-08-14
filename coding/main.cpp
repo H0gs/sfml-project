@@ -108,20 +108,20 @@ int main()
 
     platforms.push_back(std::move(platform2));
 
-    std::unique_ptr<Platform> platform3 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
-    platform3->setTexture("textures/brick.png");
-    platform3->setPos(sf::Vector2f(1600, 700));
-    platform3->setSize(sf::Vector2f(64, 64));
+    // std::unique_ptr<Platform> platform3 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    // platform3->setTexture("textures/brick.png");
+    // platform3->setPos(sf::Vector2f(1600, 700));
+    // platform3->setSize(sf::Vector2f(64, 64));
     // platform3->setID(3);
 
-    platforms.push_back(std::move(platform3));
+    // platforms.push_back(std::move(platform3));
 
 
 
     std::unique_ptr<Platform> ground = std::make_unique<Platform>();
     ground->setTexture(SINGLECOLOR);
     ground->setPos(sf::Vector2f(-100, 770));
-    ground->setSize(sf::Vector2f(1700, 50));
+    ground->setSize(sf::Vector2f(1675, 50));
 
     std::unique_ptr<Platform> ground2 = std::make_unique<Platform>();
     ground2->setTexture(SINGLECOLOR2);
@@ -170,18 +170,18 @@ int main()
 
     platforms.push_back(std::move(platform7));
 
-    std::unique_ptr<Platform> platform8 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
-    platform8->setTexture("textures/brick.png");
-    platform8->setPos(sf::Vector2f(1100, 550));
-    platform8->setSize(sf::Vector2f(64, 64));
+    // std::unique_ptr<Platform> platform8 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
+    // platform8->setTexture("textures/brick.png");
+    // platform8->setPos(sf::Vector2f(1100, 550));
+    // platform8->setSize(sf::Vector2f(64, 64));
     // platform8->setID(8);
 
-    platforms.push_back(std::move(platform8));
+    // platforms.push_back(std::move(platform8));
 
     std::unique_ptr<Platform> platform9 = std::make_unique<Platform>(); //Must explicitly call the constructor because the unique_pointer will not automatically do it
     platform9->setTexture("textures/brick.png");
     platform9->setPos(sf::Vector2f(1300, 550));
-    platform9->setSize(sf::Vector2f(64, 64));
+    platform9->setSize(sf::Vector2f(64, 320));
     // platform9->setID(9);
 
     platforms.push_back(std::move(platform9));
@@ -278,9 +278,9 @@ int main()
         for(std::unique_ptr<Platform> &platform : platforms){
             window.draw(platform->getSprite());
         }
-        for(std::unique_ptr<Entity>& entity : entities){
-            window.draw(entity->getSprite());
-        }
+        // for(std::unique_ptr<Entity>& entity : entities){
+        //     window.draw(entity->getSprite());
+        // }
 
         //Player jump testing
         for(std::unique_ptr<Platform> &platform : platforms){
@@ -347,11 +347,6 @@ int main()
                 window.draw(circle);
             }
         }
-        // std::cout << player.getPos().x << ", " << player.getPos().y << std::endl;
-        // std::cout << "Jumpable: " << entities.at(0).get()->jumpableHelper(platforms.at(1).get()->toFakePlatform(), sf::Vector2f(439, 385)) << std::endl;
-        // std::cout << "Jumpable: " << entities.at(0).get()->jumpable(platforms.at(1).get()->toFakePlatform(), platforms.at(0).get()->toFakePlatform()) << std::endl;
-        // std::cout << platforms.at(1).get()->getPos().x << ", " << platforms.at(0).get()->getPos().x << std::endl;
-        // std::cout << "Jumpable: " << entities.at(0).get()->jumpable(platforms.at(3).get()->toFakePlatform(), platforms.at(0).get()->toFakePlatform()) << std::endl;
 
         //Goblin jump testing
         for(std::unique_ptr<Platform> &platform : platforms){

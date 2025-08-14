@@ -27,8 +27,8 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
     //Velocity section
     yVelocity += gravity;
 
-    pos.x += xVelocity;
-    pos.y += yVelocity;
+    pos.x += xVelocity + appliedXVelocity;
+    pos.y += yVelocity + appliedYVelocity;
     bool collided = false;
     for(std::unique_ptr<Platform> &platform : platforms){
         if(collides(platform.get())){
@@ -80,7 +80,7 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
         xVelocity = -maxXVelocity;
     }
     if(yVelocity > maxYVelocity){
-        yVelocity = maxXVelocity;
+        yVelocity = maxYVelocity;
     }else if(yVelocity < -maxYVelocity){
         yVelocity = -maxYVelocity;
     }
@@ -100,7 +100,7 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
             auto end2 = std::chrono::high_resolution_clock::now();
             auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - end1);
 
-            movementNodes = calculateNodes();
+            movementNodes = calculateNodes(platforms);
             auto end3 = std::chrono::high_resolution_clock::now();
             auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end3 - end2);
 
@@ -120,7 +120,10 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
         bool repeat = true;
         while(repeat){
             if(movementNodes.size() > 0){
-                if(std::abs(movementNodes.at(0).x - pos.x) <= maxXVelocity  && std::abs(movementNodes.at(0).y - (pos.y + getSize().y)) <= maxXVelocity){ //Use 0.01 to account for double truncation and weird number stuff
+                if(std::abs(movementNodes.at(0).x - pos.x) <= maxXVelocity  && std::abs(movementNodes.at(0).y - (pos.y + getSize().y)) <= maxYVelocity){ //If the position of the entity is roughly at the position of the node, this might cause issues later though because its not very precise
+                    pos.x = movementNodes.at(0).x;
+                    pos.y = movementNodes.at(0).y - getSize().y - 1;
+
                 //if(std::abs(movementNodes.at(0).x - pos.x) < 0.01 && std::abs(movementNodes.at(0).y - (pos.y + getSize().y)) < 0.01){ //Use 0.01 to account for double truncation and weird number stuff
                     movementNodes.erase(movementNodes.begin());
                     // std::cout << "Removed!" << std::endl;
@@ -138,12 +141,13 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
 
     }
     //Need to recheck to see if it has not completed
-    if(movementNodes.size() > 0){
+    if(movementNodes.size() > 0 && currentPlatform(platforms) != nullptr){
         FakePlatform current = currentPlatform(platforms)->toFakePlatform();
         sf::Vector2f temp = pos;
         pos = movementNodes.at(0);
         FakePlatform endPlatform = currentPlatform(platforms)->toFakePlatform();
         pos = temp;
+
 
         if(endPlatform == current){ //If we are moving in a straight line horizontally
             if(movementNodes.at(0).x > pos.x){
@@ -152,7 +156,47 @@ sf::Vector2f Entity::update(std::vector<std::unique_ptr<Platform>>& platforms)
                 xVelocity = -maxXVelocity;
             }
         }
+        else{
+            //We still have a few nodes to go until we reach the end platform
+            if(currentPlatform(platforms) != nullptr){
+                // std::cout << fallable(pos, movementNodes.at(0)) << std::endl;
+                // std::cout << "(" << pos.x << ", " << pos.y << "), (" << movementNodes.at(0).x << ", " << movementNodes.at(0).y << ")" << std::endl;
+                if(!fallable(pos, movementNodes.at(0))){
+                    yVelocity = -jumpVelocity;
+                }else{
+                    //We are still on the platform, move to one side until we fall off, then adjust midair in the next code section
+                    if(movementNodes.at(0).x > pos.x){
+                        xVelocity = maxXVelocity;
+                    }else{
+                        xVelocity = -maxXVelocity;
+                    }
+                }
+            }
+        }
+    }else if (movementNodes.size() > 0){
+        //If we are midair, move to the platform
+        // std::cout << "Working - " << fallable(pos, movementNodes.at(0)) << std::endl;
+        // std::cout << "Jumpable: " << 
+        // std::cout << "Falling Frames: " << fallingFrames(pos, movementNodes.at(0)) << std::endl;
+        if(fallingFrames(pos, movementNodes.at(0), yVelocity) > 0 && fallable(pos, movementNodes.at(0))){
+            double xDist;
+
+            double xDist1 = std::abs(pos.x - movementNodes.at(0).x);
+            double xDist2 = std::abs(pos.x + getSize().x - movementNodes.at(0).x);
+            if(xDist1 < xDist2){
+                xDist = xDist1;
+            }else{
+                xDist = xDist2;
+            }
+            int direction = 1;
+            if(!(pos.x < getMovementNodes().at(0).x)){
+                direction = -1;
+            }
+
+            xVelocity = direction * xDist / fallingFrames(pos, movementNodes.at(0), yVelocity);
+        }
     }
+    
 
     //States and behavior
     if(withinDetectionRange()){
@@ -232,8 +276,7 @@ bool Entity::jumpable(FakePlatform start, FakePlatform end, std::vector<std::uni
 
 
     double xPos1 = start.getPos().x;
-    double xPos2 = start.getPos().x + end.getWidth();
-
+    double xPos2 = start.getPos().x + start.getWidth();
 
     if(jumpableHelper(end, sf::Vector2f(xPos1, start.getPos().y - getSize().y), platforms)){ //This one (still)
         return true;
@@ -250,11 +293,14 @@ bool Entity::jumpable(FakePlatform start, FakePlatform end, std::vector<std::uni
         double endX1 = end.getPos().x;
         double endX2 = endX1 + end.getWidth();
 
+        
         if(endX1 > startX1 && endX1 < startX2){//If the first edge of end is over start
             if(jumpableHelper(end, sf::Vector2f(endX1 - getSize().x, start.getPos().y - getSize().y), platforms)){
                 return true;
             }
         }
+        
+        
 
         if(endX2 > startX1 && endX2 < startX2){//If the second edge of end is over start
             if(jumpableHelper(end, sf::Vector2f(endX2, start.getPos().y - getSize().y), platforms)){
@@ -297,6 +343,19 @@ bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p, std::vector<s
     double yDistance = p.y - platform.getPos().y + getSize().y;
     double apexDist = yPositiontracker;
 
+    //Find the corner of the platfrom that is closest to the entity / player, this is the corner we should jump to
+    double xDistance;
+
+    double leftDist = abs(p.x + getSize().x - platform.getPos().x);
+    double rightDist = abs(platform.getPos().x + platform.getSize().x - p.x);
+
+    if(leftDist > rightDist){
+        //If the left corner is farther away than the right corner
+        xDistance = rightDist;
+    }else{
+        xDistance = leftDist;
+    }
+
     sf::Vector2f posActual;
     posActual.x = p.x;
     posActual.y = p.y;
@@ -311,30 +370,138 @@ bool Entity::jumpableHelper(FakePlatform platform, sf::Vector2f p, std::vector<s
         posActual.x += direction * maxXVelocity;
         posActual.y -= yVelocityTracker; //Invert because top of the screen is 0 (?)
         for(FakePlatform fp : fakePlatforms){
-            if(collides(fp, posActual) && fp != platform){
-                // std::cout << "Id: " << fp.getID() << std::endl;
-                return false;
+            if(collides(fp, posActual) && fp != platform){                
+                return xDistance < xPositiontracker && apexDist > yDistance;
             }
         }
     }
 
-    //Find the corner of the platfrom that is closest to the entity / player, this is the corner we should jump to
-    double xDistance;
-
-    double leftDist = abs(p.x + getSize().x - platform.getPos().x);
-    double rightDist = abs(platform.getPos().x + platform.getSize().x - p.x);
-
-    if(leftDist > rightDist){
-        //If the left corner is farther away than the right corner
-        xDistance = rightDist;
-    }else{
-        xDistance = leftDist;
-    }
+    
 
 
     return xDistance < xPositiontracker && 
     apexDist > yDistance;
             // (yPositiontracker - jumpVelocity < platform.getPos().y);
+}
+
+bool Entity::fallable(sf::Vector2f p, sf::Vector2f target){
+    int count = 0;
+
+    double yVelocityTracker = yVelocity;
+    double yDist = target.y - (p.y + getSize().y);
+
+    double xDist;
+
+    double xDist1 = std::abs(p.x - target.x);
+    double xDist2 = std::abs(p.x + getSize().x - target.x);
+    if(xDist1 < xDist2){
+        xDist = xDist1;
+    }else{
+        xDist = xDist2;
+    }
+
+    // double xDist = std::abs(p.x - target.x);
+
+
+    double yPositionTracker = 0;
+    double xPositionTracker = 0;
+
+    while(yPositionTracker < yDist){
+        // count++;
+        // if(count > 1000){
+        //     std::cout << "Fallable!!!" << std::endl;
+        //     break;
+        // }
+        if(xPositionTracker > xDist){
+            return true;
+        }
+        if(yVelocityTracker < maxYVelocity){
+            yVelocityTracker += gravity;
+        }
+        if(yVelocityTracker > maxYVelocity){
+            yVelocityTracker = maxYVelocity;
+        }
+        xPositionTracker += maxXVelocity;
+        yPositionTracker += yVelocityTracker;
+    }
+
+    return xPositionTracker >= xDist;
+}
+
+int Entity::fallingFrames(sf::Vector2f p, sf::Vector2f target, double velo){
+    int frames = 0;
+
+    double yDistance = std::abs(target.y - p.y - getSize().y);
+
+    double yVelocityTracker = velo;
+    double yPositionTracker = p.y;
+    while(yPositionTracker + getSize().y < target.y || yVelocityTracker < 0){
+        frames++;
+        if(frames > 1000){
+            std::cout << "Frames!!!" << std::endl;
+            break;
+        }
+        if(yVelocityTracker < maxYVelocity){
+            yVelocityTracker += gravity;
+        }
+        if(yVelocityTracker > maxYVelocity){
+            yVelocityTracker = maxYVelocity;
+        }
+        yPositionTracker += yVelocityTracker;
+        // std::cout << "Loop velo: " << yVelocityTracker <<  ", Math: " << frames * gravity + yVelocity << std::endl;
+        // std::cout << "Loop yPos: " << yPositionTracker <<  ", Math: " << 0.5 * frames * frames * gravity + yVelocity * frames + p.y << std::endl;
+
+
+    }
+
+    // std::cout << "Frames: " << frames << std::endl;
+    // std::cout << std::round(std::sqrt((yVelocity * yVelocity) / (gravity * gravity) + 2 / gravity * (yDistance - 1)) - yVelocity / gravity + 0.5) << std::endl;
+    // //This works as long as the entity velocity is less than its max velocity
+    // double time = std::sqrt(-2 * (target.y - p.y - getSize().y) + (yVelocity * yVelocity)) - yVelocity;
+    // std::cout << "Calculated Frames: " << time << std::endl;
+    return frames;
+}
+
+bool Entity::jumpableWithSomeVelocity(FakePlatform start, FakePlatform end, std::vector<std::unique_ptr<Platform>> &platforms, double v, sf::Vector2f startingPos)
+{
+    double xPositionTracker = startingPos.x;
+    double yPositionTracker = startingPos.y;
+    double yVelocityTracker = -jumpVelocity;
+
+    double yDistance = end.getPos().y - start.getPos().y;
+
+    while(yPositionTracker + getSize().y < end.getPos().y || yVelocityTracker < 0){
+        if(yVelocityTracker < maxYVelocity){
+            yVelocityTracker += gravity;
+        }
+        if(yVelocityTracker > maxYVelocity){
+            yVelocityTracker = maxYVelocity;
+        }
+
+        xPositionTracker += v;
+        yPositionTracker += yVelocityTracker;
+
+        bool collided = false;
+        for(std::unique_ptr<Platform> &platform : platforms){
+            if(collides(platform->toFakePlatform(), sf::Vector2f(xPositionTracker, yPositionTracker))){
+                collided = true;
+                if(platform->toFakePlatform() == end){
+                    yPositionTracker -= yVelocityTracker;
+                    if(collides(platform->toFakePlatform(), sf::Vector2f(xPositionTracker, yPositionTracker))){
+                        return false; //We hit the platform from the side, we are too short of the platform and the velocity is not great enough
+                    }else{
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    if(currentPlatform(platforms) != nullptr){
+        return currentPlatform(platforms)->toFakePlatform() == end;
+    }
+
+    return false;
 }
 
 bool Entity::collidesBottom(Platform* platform){ //This is pretty much only used for jumping
@@ -383,7 +550,7 @@ Platform* Entity::currentPlatform(std::vector<std::unique_ptr<Platform>>& platfo
 }
 
 //Starts at entity, ends at player
-std::vector<sf::Vector2f> Entity::calculateNodes(){
+std::vector<sf::Vector2f> Entity::calculateNodes(std::vector<std::unique_ptr<Platform>>& platforms){
     std::vector<sf::Vector2f> nodes;
     if(path.size() == 1){
         sf::Vector2f node;
@@ -394,6 +561,7 @@ std::vector<sf::Vector2f> Entity::calculateNodes(){
     }
     if(path.size() > 0){
         for(int i = 0; i < path.size() - 1; i++){
+            // std::cout << "Iteration" << std::endl;
             FakePlatform a = path.at(i);
             FakePlatform b = path.at(i + 1);
 
@@ -432,19 +600,147 @@ std::vector<sf::Vector2f> Entity::calculateNodes(){
 
             }else{ //a is above b
                 //Note that B cannot be directly under A and smaller than A because of how most efficient works
-                if(b.getPos().x < a.getPos().x){
-                    //B is to the left of A
+                bool leftSideOver = a.getPos().x > b.getPos().x && a.getPos().x < b.getPos().x + b.getWidth();
+                bool rightSideOver = a.getPos().x + a.getSize().x > b.getPos().x && a.getPos().x + a.getSize().x < b.getPos().x + b.getWidth();
+                double playerCenter = target->getPos().x + (target->getSize().x) / 2;
+
+                if(leftSideOver && rightSideOver){
+                    if(std::abs(a.getPos().x - playerCenter) < std::abs(a.getPos().x + a.getSize().x - playerCenter)){
+                        nodeA.x = a.getPos().x;
+                        nodeA.y = a.getPos().y;
+                        nodeB.x = a.getPos().x - getSize().x - 1;
+                        nodeB.y = b.getPos().y;
+                    }else{
+                        nodeA.x = a.getPos().x + a.getSize().x;
+                        nodeA.y = a.getPos().y;
+                        nodeB.x = a.getPos().x + a.getSize().x + 1;
+                        nodeB.y = b.getPos().y;
+                    }
+                }else if(leftSideOver){
                     nodeA.x = a.getPos().x;
                     nodeA.y = a.getPos().y;
-                    nodeB.x = b.getPos().x + b.getWidth();
+                    nodeB.x = a.getPos().x - getSize().x - 1;
+                    nodeB.y = b.getPos().y;
+                }else if(rightSideOver){
+                    nodeA.x = a.getPos().x + a.getSize().x;
+                    nodeA.y = a.getPos().y;
+                    nodeB.x = a.getPos().x + a.getSize().x + 1;
                     nodeB.y = b.getPos().y;
                 }else{
-                    //B is to the right of A
-                    nodeA.x = a.getPos().x + a.getWidth();
-                    nodeA.y = a.getPos().y;
-                    nodeB.x = b.getPos().x;
-                    nodeB.y = b.getPos().y;
+                    bool advancedCalc = false;
+                    if(b.getPos().x < a.getPos().x){
+                        //B is to the left of A
+                        // std::cout << "B to the Left" << std::endl;
+                        if(i + 1 < path.size() - 1){
+                            // std::cout << "Not Last Jump" << std::endl;                            
+                            
+                            if(path.at(i + 2).getPos().x + path.at(i + 2).getSize().x < b.getPos().x){
+                                advancedCalc = true;
+                            }
+                        }else{
+                            // std::cout << "Last Jump" << std::endl;
+                            advancedCalc = true;
+                        }
+                        if(advancedCalc){
+                            // std::cout << "Use Advanced Calc!" << std::endl;
+                            //Here use the maximum possible velocity
+                            double maxVelo = 0;
+                            for(int i = 1; i <= 10; i++){
+                                if(jumpableWithSomeVelocity(a, b, platforms, -maxXVelocity / 10 * i, a.getPos())){
+                                    if(maxXVelocity / 10 * i > maxVelo){
+                                        maxVelo = maxXVelocity / 10 * i;
+                                    }
+                                }
+                            }
+                            if(maxVelo != 0){
+                                int frames = 0;
+                                double xDist = 0;
+                                // std::cout << "Advanced Calc Succeded - " << maxVelo << std::endl;
+                                if(fallable(a.getPos(), sf::Vector2f(b.getPos().x + b.getWidth(), b.getPos().y))){
+                                    xDist = maxVelo * fallingFrames(sf::Vector2f(a.getPos().x, a.getPos().y - getSize().y), sf::Vector2f(b.getPos().x + b.getWidth(), b.getPos().y), 0) - getSize().x;
+                                }else{
+                                    xDist = maxVelo * fallingFrames(sf::Vector2f(a.getPos().x, a.getPos().y - getSize().y), sf::Vector2f(b.getPos().x + b.getWidth(), b.getPos().y), -jumpVelocity) - getSize().x; // No clue why we need the -getSize().x but it seems to work
+                                }
+                                // std::cout << "XDist: " << xDist << std::endl;
+                                nodeA.x = a.getPos().x;
+                                nodeA.y = a.getPos().y;
+                                nodeB.x = -xDist + a.getPos().x;
+                                nodeB.y = b.getPos().y;
+                            }else{
+                                // Advanced Calc Failed
+                                nodeA.x = a.getPos().x;
+                                nodeA.y = a.getPos().y;
+                                nodeB.x = b.getPos().x + b.getWidth();
+                                nodeB.y = b.getPos().y;
+                            }
+                        }else{
+                            nodeA.x = a.getPos().x;
+                            nodeA.y = a.getPos().y;
+                            nodeB.x = b.getPos().x + b.getWidth();
+                            nodeB.y = b.getPos().y;
+                        }
+                        
+                    }else{
+                        //B is to the right of A
+
+                        //Start -------------------------------------------------------------------------------------
+                        if(i + 1 < path.size() - 1){
+                            // Not Last Jump                            
+                            if(b.getPos().x > path.at(i + 2).getSize().x + path.at(i + 2).getSize().x){
+                                advancedCalc = true;
+                            }
+                        }else{
+                            // Last Jump
+                            advancedCalc = true;
+                        }
+                        if(advancedCalc){
+                            //Here use the maximum possible velocity
+                            double maxVelo = 0;
+                            for(int i = 1; i <= 10; i++){
+                                if(jumpableWithSomeVelocity(a, b, platforms, maxXVelocity / 10 * i, sf::Vector2f(a.getPos().x + a.getSize().x - getSize().x, a.getPos().y))){ //The -getSize().x is because the entity wont jump all the way at the end of the platform but instead once it reaches the node so it isnt really hanging over the edge
+                                    if(maxXVelocity / 10 * i > maxVelo){
+                                        maxVelo = maxXVelocity / 10 * i;
+                                    }
+                                }
+                            }
+                            if(maxVelo != 0){
+                                int frames = 0;
+                                double xDist = 0;
+                                // std::cout << "Advanced Calc Succeded - " << maxVelo << std::endl;
+                                if(fallable(sf::Vector2f(a.getPos().x + a.getSize().x, a.getPos().y), b.getPos())){
+                                    xDist = maxVelo * fallingFrames(sf::Vector2f(a.getPos().x, a.getPos().y - getSize().y), sf::Vector2f(b.getPos().x + b.getWidth(), b.getPos().y), 0);
+                                }else{
+                                    xDist = maxVelo * fallingFrames(sf::Vector2f(a.getPos().x, a.getPos().y - getSize().y), sf::Vector2f(b.getPos().x + b.getWidth(), b.getPos().y), -jumpVelocity); // No clue why we need the -getSize().x but it seems to work
+                                }
+                                // std::cout << "XDist: " << xDist << std::endl;
+                                nodeA.x = a.getPos().x + a.getWidth();
+                                nodeA.y = a.getPos().y;
+                                if(xDist + a.getPos().x > b.getPos().x + b.getSize().x){
+                                    nodeB.x = b.getPos().x + b.getSize().x;
+                                }else{
+                                    nodeB.x = xDist + a.getPos().x + a.getSize().x;
+                                }                                
+                                nodeB.y = b.getPos().y;
+                            }else{
+                                // Advanced Calc Failed - 1
+                                nodeA.x = a.getPos().x + a.getWidth();
+                                nodeA.y = a.getPos().y;
+                                nodeB.x = b.getPos().x;
+                                nodeB.y = b.getPos().y;
+                            }
+                        }else{
+                            // Advanced Calc Failed - 2
+                            nodeA.x = a.getPos().x + a.getWidth();
+                            nodeA.y = a.getPos().y;
+                            nodeB.x = b.getPos().x;
+                            nodeB.y = b.getPos().y;
+                        }
+
+                        //End ---------------------------------------------------------------------------------------
+                        
+                    }
                 }
+                
             }
             //Check before adding to prevent duplicates
             nodes.push_back(nodeA);
@@ -454,163 +750,18 @@ std::vector<sf::Vector2f> Entity::calculateNodes(){
     }//If statement
 
     //Add code to clean up nodes here
+    // std::cout << "-----------------------------------------------------" << std::endl;
     return nodes;
 }
 
 //Assumes currentPlatform is not null \/
 
+
 /**
- * @brief [CURRENTLY UNUSED] Finds a jumpable series of fakeplatforms to get to the player
- * @param storage A vector containing vectors, each sub-vector representing a possible path in the form of fakeplatforms, this is created by scramble
+ * @brief Finds a jumpable series of fakeplatforms to get to the player
  * @param platforms A reference to the unique pointer Platform array created in main
  * @return A vector<FakePlatform> representing the most efficient path to get to the player. Start of the array is at the entity, ends at the player
  */
-std::vector<FakePlatform> Entity::mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms){
-    //Storage is the scrambled arrays, platforms is the original game array set
-
-    if(storage.size() == 0){
-        std::cout << "Empty Storage" << std::endl;
-        return std::vector<FakePlatform>();
-    }
-
-    for(std::vector<FakePlatform> vec : storage){
-        //Adding these platforms back in here
-        //We start at the entity, then we work out way over to the player
-        Platform* current = currentPlatform(platforms);
-        Platform* playerPlat = target->currentPlatform(platforms);
-
-        if(current->toFakePlatform() != playerPlat->toFakePlatform()){
-            vec.insert(vec.begin(), current->toFakePlatform());
-            vec.push_back(playerPlat->toFakePlatform());
-        }else{
-            vec.insert(vec.begin(), current->toFakePlatform());
-        }
-
-        
-
-        if(vec.size() != 0){
-            bool usable = true;
-            //Note: the return of size() is an unsigned integer, meaning that 0 - 1 will loop around and be the max size (approx) 18446744073709551615, so running vec.size() - 1 without checking for 0 will massively increase run time
-            if(vec.size() != 0){
-                for(int i = 0; i < vec.size() - 1; i++){
-                    if(!jumpable(vec.at(i), vec.at(i + 1), platforms)){ // Jumpable is the main logic for this function
-                        usable = false;
-                    }
-                }
-                if(usable){
-                    for(FakePlatform fp : vec){
-                        std::cout << fp.getID() << " ";
-                    }
-                    std::cout << "\n";
-                    return vec;
-                }
-
-            }
-        }
-    }
-    std::vector<FakePlatform> a;
-    // std::cout << "Returning Empty" << std::endl;
-    return a;
-}
-
-//[CURRENTLY UNUSED] - mostEfficient3 is more efficient
-std::vector<FakePlatform> Entity::mostEfficient2(std::vector<std::unique_ptr<Platform>> &platforms)
-{
-    
-    FakePlatform playerPlat = target->currentPlatform(platforms)->toFakePlatform();
-    FakePlatform entityPlat = currentPlatform(platforms)->toFakePlatform();
-
-    std::vector<FakePlatform> fakePlatforms;
-
-    if(entityPlat == playerPlat){
-        fakePlatforms.push_back(entityPlat);
-        return fakePlatforms;
-    }
-
-    std::array<FakePlatform, 2> currentJump = {playerPlat, entityPlat};
-    if(jumpMap.find(currentJump) != jumpMap.end()){ //If this jump has already been calculated
-        // std::cout << "Contains" << std::endl;
-        return jumpMap[currentJump];
-    }else{
-        // std::cout << "Calculation required" << std::endl;
-    }
-
-    for(std::unique_ptr<Platform> &platform : platforms){
-        fakePlatforms.push_back(platform.get()->toFakePlatform());
-    }
-    
-    fakePlatforms.erase(std::remove(fakePlatforms.begin(), fakePlatforms.end(), playerPlat), fakePlatforms.end());
-    fakePlatforms.erase(std::remove(fakePlatforms.begin(), fakePlatforms.end(), entityPlat), fakePlatforms.end());
-
-    std::vector<std::vector<int>> nums;
-    int n = fakePlatforms.size();
-
-    for (int mask = 0; mask < (1 << n); ++mask) {
-        std::vector<int> vec;
-        for (int i = 0; i < n; ++i) {
-            if (mask & (1 << i)) {
-                vec.push_back(i);
-            }
-        }
-
-        //vec
-        do {
-            nums.push_back(vec);
-        } while (std::next_permutation(vec.begin(), vec.end()));
-    }
-    // std::cout << "Nums: " << nums.size() << std::endl;
-
-    fakePlatforms.insert(fakePlatforms.begin(), entityPlat);
-    fakePlatforms.push_back(playerPlat);
-
-
-    int numCount = 0;
-
-    std::unordered_set<std::array<int, 2>> blacklist; // checks IDs of FakePlatforms
-
-    for(std::vector<int>& vec : nums){
-        numCount++;
-        vec.insert(vec.begin(), -1); //Everything will be shifted up by one, so -1 will be 0 so that it points to the front of the vector
-        vec.push_back(fakePlatforms.size() - 2);
-
-        bool usable = true;
-        //Note: the return of size() is an unsigned integer, meaning that 0 - 1 will loop around and be the max size (approx) 18446744073709551615, so running vec.size() - 1 without checking for 0 will massively increase run time
-        if(vec.size() != 0){
-            for(int i = 0; i < vec.size() - 1; i++){
-                std::array<int, 2> arr = {vec.at(i), vec.at(i + 1)};
-                if(blacklist.find(arr) != blacklist.end()){ //If blacklist contains arr
-                    usable = false;
-                    break;
-                }else{
-                    if(!jumpable(fakePlatforms.at(vec.at(i) + 1), fakePlatforms.at(vec.at(i + 1) + 1), platforms)){ // Jumpable is the main logic for this function
-                        usable = false;
-                        blacklist.insert(arr);
-                        // for()
-                    }
-                }
-                
-            }
-            if(usable){
-                std::vector<FakePlatform> finalVec;
-                for(int n : vec){
-                    // std::cout << fakePlatforms.at(n + 1).getID() << " ";
-                    finalVec.push_back(fakePlatforms.at(n + 1));
-                }
-                // std::cout << std::endl;
-                // std::cout << "NumCount: " << numCount << std::endl;
-                jumpMap[currentJump] = finalVec;
-                // std::cout << "Calculation Added To jumpMap!" << std::endl;
-                return finalVec;
-            }
-
-        }
-
-    }
-
-    jumpMap[currentJump] = std::vector<FakePlatform>();
-    return std::vector<FakePlatform>();
-}
-
 std::vector<FakePlatform> Entity::mostEfficient3(std::vector<std::unique_ptr<Platform>>& platforms){
     FakePlatform playerPlat = target->currentPlatform(platforms)->toFakePlatform();
     FakePlatform entityPlat = currentPlatform(platforms)->toFakePlatform();
@@ -661,9 +812,6 @@ std::vector<FakePlatform> Entity::mostEfficient3(std::vector<std::unique_ptr<Pla
     mostEfficient3_Helper(entityPlat, playerPlat, set, vec, &finalPath, &count);
 
 
-    
-
-
     jumpMap[currentJump] = finalPath;
     return finalPath;
 }
@@ -680,10 +828,10 @@ void Entity::mostEfficient3_Helper(FakePlatform start, FakePlatform end, std::un
                 if(platform == end && tempVec.size() < *count){
                     *storage = tempVec;
                     *count = tempVec.size();
-                    for(FakePlatform fp : tempVec){
-                        std::cout << fp.getID() << " ";
-                    }
-                    std::cout << std::endl;
+                    // for(FakePlatform fp : tempVec){
+                    //     std::cout << fp.getID() << " ";
+                    // }
+                    // std::cout << std::endl;
                 }else{
                     tempSet.insert(platform);
                     mostEfficient3_Helper(platform, end, tempSet, tempVec, storage, count);

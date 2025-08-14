@@ -47,9 +47,12 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         double speed;
         double gravity = 1; //Gravitational acceleration
         double maxXVelocity = 10;
-        double maxYVelocity = 20;
+        double maxYVelocity = 25;
         double xVelocity = 0;
         double yVelocity = 0;
+
+        double appliedXVelocity = 0;
+        double appliedYVelocity = 0;
 
         double MAXHEALTH;
         double MINHEALTH;
@@ -92,6 +95,9 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         bool withinAttackRange();
         bool jumpable(FakePlatform start, FakePlatform end, std::vector<std::unique_ptr<Platform>>& platforms);
         bool jumpableHelper(FakePlatform platform, sf::Vector2f p, std::vector<std::unique_ptr<Platform>>& platforms);
+        bool fallable(sf::Vector2f pos, sf::Vector2f target);
+        int fallingFrames(sf::Vector2f p, sf::Vector2f target, double velo);
+        bool jumpableWithSomeVelocity(FakePlatform start, FakePlatform end, std::vector<std::unique_ptr<Platform>> &platforms, double v, sf::Vector2f startingPos);
         // bool jumpableHelper(Platform* p);
         Platform* currentPlatform(std::vector<std::unique_ptr<Platform>>& platforms);
 
@@ -99,10 +105,9 @@ class Entity{ //Non-player character, may eventually be implemented into the pla
         void scrambleHelper2(std::vector<FakePlatform> origin, std::unordered_map<FakePlatform, int> vec, std::vector<std::unordered_map<FakePlatform, int>>* storage);
         std::vector<std::vector<FakePlatform>> scramble(std::vector<std::unique_ptr<Platform>>& platforms);
         std::vector<FakePlatform> mostEfficient(std::vector<std::vector<FakePlatform>> storage, std::vector<std::unique_ptr<Platform>>& platforms);
-        std::vector<FakePlatform> mostEfficient2(std::vector<std::unique_ptr<Platform>>& platforms);
         std::vector<FakePlatform> mostEfficient3(std::vector<std::unique_ptr<Platform>>& platforms);
         void mostEfficient3_Helper(FakePlatform start, FakePlatform end, std::unordered_set<FakePlatform> alreadyDone, std::vector<FakePlatform> currentPath, std::vector<FakePlatform>* storage, int* count);
-        std::vector<sf::Vector2f> calculateNodes();
+        std::vector<sf::Vector2f> calculateNodes(std::vector<std::unique_ptr<Platform>>& platforms);
 
         bool contains(std::vector<FakePlatform> platforms, FakePlatform platform);
         std::vector<FakePlatform> getPath();
